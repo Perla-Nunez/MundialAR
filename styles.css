@@ -1,0 +1,492 @@
+/* -------------------------------------------------------
+   Mundial AR – Tema Futbolero (mobile-first)
+   Paleta: verde cancha, blanco líneas, dorado acentos
+   Tipografías: Oswald (títulos), Rubik (texto)
+--------------------------------------------------------*/
+
+/* ====== Variables de tema ====== */
+:root {
+  --pitch-green-1: #0b4f2b;   /* verde oscuro */
+  --pitch-green-2: #157347;   /* verde medio (cancha) */
+  --pitch-green-3: #1f9d5b;   /* verde brillante */
+  --line-white:    #eaf7ed;   /* líneas de campo */
+  --accent-gold:   #f5c542;   /* dorado trofeo */
+  --ink-1:         #0f1a13;   /* texto muy oscuro */
+  --ink-2:         #cfe7d7;   /* texto sobre fondo oscuro */
+  --card-bg:       rgba(18, 28, 23, 0.8);
+  --card-stroke:   rgba(255, 255, 255, 0.06);
+  --shadow-soft:   0 6px 20px rgba(0,0,0,.25);
+  --shadow-press:  0 2px 10px rgba(0,0,0,.35);
+}
+
+/* ====== Tipografías ====== */
+/* Importa Bebas Neue y Rubik */
+
+/* Rubik base para todo el cuerpo */
+html, body {
+  font-family: "Rubik", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Bebas Neue SOLO en títulos / brand / tabbar */
+h1, h2, h3, h4, h5, h6,
+.navbar-brand,
+.tabbar span {
+  font-family: "Bebas Neue", sans-serif !important; /* forzamos */
+  font-weight: 400; /* Bebas es single-weight */
+  letter-spacing: .5px;
+}
+
+/* utilidad por si quieres probar en cualquier elemento */
+.font-bebas { font-family: "Bebas Neue", sans-serif !important; }
+
+
+/* ====== Textura de “cancha” sutil (líneas cada ~22px) ====== */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.06) 0px,
+      rgba(255,255,255,0.06) 2px,
+      transparent 2px,
+      transparent 22px
+    ),
+    repeating-linear-gradient(
+      to right,
+      rgba(255,255,255,0.04) 0px,
+      rgba(255,255,255,0.04) 2px,
+      transparent 2px,
+      transparent 22px
+    );
+  mix-blend-mode: overlay;
+  opacity: .25;
+  z-index: 0;
+}
+
+/* ====== Nav superior ====== */
+.bg-black { background: linear-gradient(180deg, #0a2416 0%, #05140c 100%) !important; }
+.navbar {
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  backdrop-filter: blur(6px);
+}
+.navbar .navbar-brand i { color: var(--accent-gold); }
+
+/* ====== Contenedor principal ====== */
+main.container,
+main.container-fluid {
+  position: relative;
+  z-index: 1; /* sobre la textura */
+}
+
+/* ====== Botón primario estilo “trofeo” ====== */
+.btn-primary {
+  --bs-btn-bg: var(--accent-gold);
+  --bs-btn-border-color: var(--accent-gold);
+  --bs-btn-hover-bg: #e0b53b;
+  --bs-btn-hover-border-color: #e0b53b;
+  --bs-btn-color: #1b1403;
+  box-shadow: 0 6px 14px rgba(245, 197, 66, .3);
+}
+
+/* ====== Tarjetas & acciones ====== */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-stroke);
+  box-shadow: var(--shadow-soft);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.card-action {
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.card-action:hover { transform: translateY(-2px); }
+.card-action:active {
+  transform: scale(.98);
+  box-shadow: var(--shadow-press);
+}
+
+/* Íconos grandes dentro de tarjetas */
+.card .bi { color: var(--line-white); }
+
+/* ====== Badges ====== */
+.badge.text-bg-secondary {
+  background: linear-gradient(180deg, #1c3f2a 0%, #142e20 100%);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+/* ====== Lista de trivias ====== */
+.list-group-item {
+  background: rgba(12, 25, 19, .75);
+  color: var(--ink-2);
+  border: 1px solid rgba(255,255,255,.06);
+}
+.list-group-item:hover {
+  background: rgba(20, 45, 33, .9);
+}
+
+/* ====== Escenario AR (video/canvas) ====== */
+.ar-stage {
+  position: relative;
+  width: 100%;
+  height: calc(100dvh - 56px - 64px); /* header y tabbar */
+  background: radial-gradient(800px 400px at 50% 20%, var(--pitch-green-2), var(--pitch-green-1));
+  border-top: 2px solid var(--line-white);
+  border-bottom: 2px solid var(--line-white);
+  outline: 2px solid rgba(255,255,255,.08);
+}
+.ar-stage::after {
+  content: "";
+  position: absolute;
+  inset: 12% 25% auto 25%;
+  aspect-ratio: 1/1;
+  border: 2px solid rgba(234,247,237,.25);
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(.2px);
+}
+.ar-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  background: linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,0));
+  color: var(--line-white);
+}
+
+/* ====== Tabbar inferior (estilo app) ====== */
+.tabbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: 64px;
+  background: linear-gradient(180deg, rgba(8,20,14,.85), rgba(5,12,9,.95));
+  border-top: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(8px);
+  z-index: 1030;
+}
+.tabbar a {
+  color: #9ccfb1;
+  text-decoration: none;
+  font-size: 12px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px;
+  transition: color .12s ease, transform .12s ease;
+}
+.tabbar a i { font-size: 18px; }
+.tabbar a:hover   { color: #d4f3e1; transform: translateY(-1px); }
+.tabbar a.active  { color: var(--accent-gold); }
+
+/* ====== Progreso / Perfil ====== */
+.card .h4, .card .h5, .card .h6 { color: #f2fff6; }
+.form-check-input:checked {
+  background-color: var(--pitch-green-3);
+  border-color: var(--pitch-green-3);
+}
+.form-select, .form-control {
+  background: rgba(8,18,14,.8);
+  border: 1px solid rgba(255,255,255,.08);
+  color: var(--ink-2);
+}
+.form-select:focus, .form-control:focus {
+  border-color: var(--pitch-green-3);
+  box-shadow: 0 0 0 .2rem rgba(31,157,91,.25);
+}
+
+/* ====== “Tramo” destacado (tiles) en Home ====== */
+.row .card .ratio {
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+/* ====== Encabezados (color) ====== */
+h1.h3, h2.h5, h2.h6, .navbar-brand {
+  color: #edfff4;
+  text-shadow: 0 1px 0 rgba(0,0,0,.3);
+}
+
+/* ====== Utilidades ====== */
+.shadow-soft { box-shadow: var(--shadow-soft); }
+.rounded-xl  { border-radius: 20px; }
+
+/* ====== Ajustes responsivos ====== */
+@media (min-width: 576px) {
+  .tabbar a i { font-size: 19px; }
+  .tabbar { height: 66px; }
+}
+@media (min-width: 768px) {
+  .tabbar a i { font-size: 20px; }
+  .tabbar { height: 70px; }
+}
+
+/* ====== Modo claro opcional (si cambias data-bs-theme="light") ====== */
+:root[data-bs-theme="light"] {
+  --ink-2: #14251b;
+}
+:root[data-bs-theme="light"] body {
+  color: #14251b;
+  background: radial-gradient(1200px 600px at 50% -10%, #e7f7ec 0%, #d6f1e1 50%, #c3e8d4 100%);
+}
+:root[data-bs-theme="light"] .card {
+  background: rgba(255,255,255,.85);
+  border-color: rgba(0,0,0,.06);
+}
+:root[data-bs-theme="light"] .list-group-item {
+  background: rgba(255,255,255,.9);
+  color: #14251b;
+  border-color: rgba(0,0,0,.06);
+}
+:root[data-bs-theme="light"] .bg-black {
+  background: linear-gradient(180deg, #cde9d7 0%, #b9dfc8 100%) !important;
+}
+
+/* ====== Animación balón en el header ====== */
+.header-has-track { position: relative; overflow: visible; z-index: 1030; }
+.header-track     { position: absolute; inset: 0 0 auto 0; height: 110px; pointer-events: none; z-index: 1050; }
+
+/* ⚽ PNG por HTTPS */
+.soccer{
+  --ball-size: 90px;
+  --edge-pad: 12px;
+  width: var(--ball-size);
+  height: var(--ball-size);
+  margin-left: var(--edge-pad);
+  background: url('https://static.vecteezy.com/system/resources/previews/012/996/773/non_2x/sport-ball-football-free-png.png') center/contain no-repeat;
+  animation: rollX 4.5s linear infinite;
+  will-change: transform;
+}
+
+/* recorre el ancho visible y rota */
+@keyframes rollX{
+  0%   { transform: translateX(0) rotate(0deg); }
+  50%  { transform: translateX(calc(100vw - var(--ball-size) - (var(--edge-pad)*2))) rotate(540deg); }
+  100% { transform: translateX(0) rotate(1080deg); }
+}
+
+/* ajustes opcionales */
+@media (max-width:380px){ .soccer{ --ball-size:72px; } }
+@media (prefers-reduced-motion: reduce){ .soccer{ animation:none; } }
+
+
+/* ===========================
+   Sabor Futbolero Extra
+   =========================== */
+
+/* --- A) Banderines y líneas de banda en el layout --- */
+.stadium-deco {
+  position: relative;
+  isolation: isolate;
+}
+.stadium-deco::before,
+.stadium-deco::after {
+  content:"";
+  position: fixed;
+  top: 56px; /* bajo la navbar */
+  bottom: 64px; /* sobre la tabbar */
+  width: 8px;
+  z-index: 0;
+  background:
+    linear-gradient(var(--line-white), var(--line-white)) left/2px 100% no-repeat,
+    linear-gradient(var(--line-white), var(--line-white)) right/2px 100% no-repeat,
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+  opacity:.5;
+  pointer-events:none;
+}
+.stadium-deco::before { left: 8px;  }
+.stadium-deco::after  { right: 8px; }
+
+/* Banderín de córner */
+.corner-flag {
+  position: absolute;
+  width: 0; height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 22px solid var(--accent-gold);
+  transform-origin: top center;
+  animation: flag-wobble 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
+}
+.corner-flag.flag-tl { top: 6px; left: 10px; rotate: -45deg; }
+.corner-flag.flag-tr { top: 6px; right: 10px; rotate: 45deg; }
+@keyframes flag-wobble {
+  0%,100% { transform: rotate(0deg) }
+  50%     { transform: rotate(3deg) }
+}
+
+/* --- B) Banners de estadio para títulos/secciones --- */
+.stadium-banner {
+  background: linear-gradient(180deg, rgba(28,63,42,.9), rgba(20,46,32,.85));
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: .85rem 1rem;
+  color: #edfff4;
+  display:flex; align-items:center; gap:.6rem;
+  box-shadow: var(--shadow-soft);
+}
+.stadium-banner i { color: var(--accent-gold); }
+
+/* --- C) Tarjetas con textura de red de portería --- */
+.card.goalnet {
+  position: relative;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.085) 0 2px, transparent 2px 14px),
+    var(--card-bg);
+  border: 1px solid rgba(255,255,255,.12);
+}
+.card.goalnet .card-body {
+  backdrop-filter: blur(2px);
+}
+.card.goalnet:hover { transform: translateY(-2px); }
+
+/* --- D) Fajas “camiseta” para ítems del home --- */
+.kit-stripe {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 3px, transparent 3px 14px);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+/* --- E) Scoreboard / marcador --- */
+.scoreboard {
+  background: linear-gradient(180deg, #0c1e15, #0a1811);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: var(--shadow-soft);
+  color: #edfff4;
+}
+.scoreboard .teams {
+  display:grid; grid-template-columns: 1fr auto 1fr; gap:.75rem; align-items:center;
+}
+.scoreboard .team {
+  display:flex; align-items:center; gap:.5rem;
+}
+.badge-team {
+  display:inline-flex; align-items:center; gap:.4rem;
+  background: rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+  padding: .25rem .55rem;
+}
+.badge-team img {
+  width:20px; height:20px; object-fit: cover; border-radius:50%;
+  border:1px solid rgba(255,255,255,.2);
+}
+.scoreboard .score {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 32px; letter-spacing: 1px;
+  padding: .2rem .8rem;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(31,157,91,.25), rgba(10,24,17,.6));
+  border:1px solid rgba(255,255,255,.12);
+}
+
+/* --- F) Microinteracciones futboleras --- */
+.btn-primary.kick:hover {
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 10px 20px rgba(245,197,66,.35);
+}
+.btn-primary.kick:active {
+  animation: tiny-kick .12s ease-in;
+}
+@keyframes tiny-kick {
+  0% { transform: translateY(-1px) scale(1.01) rotate(0); }
+  100%{ transform: translateY(0)    scale(.99)  rotate(-1deg); }
+}
+
+/* --- G) Variantes claras (cuando theme=light) --- */
+:root[data-bs-theme="light"] .card.goalnet {
+  background:
+    repeating-linear-gradient(45deg, rgba(0,0,0,.05) 0 2px, transparent 2px 14px),
+    rgba(255,255,255,.9);
+  border-color: rgba(0,0,0,.08);
+}
+:root[data-bs-theme="light"] .stadium-banner {
+  background: linear-gradient(180deg, #cfe9d8, #bfe1cc);
+  color: #123; 
+}
+:root[data-bs-theme="light"] .scoreboard {
+  background: linear-gradient(180deg, #e9f6ee, #d9efe3);
+  color:#123;
+}
+
+/* ===== Patch de impacto visual futbolero (dark) ===== */
+
+/* A) Sube contraste de la textura global y de las líneas laterales */
+body::before { opacity: .34; } /* antes ~.25 */
+.stadium-deco::before,
+.stadium-deco::after { width: 10px; opacity: .7; }
+
+/* B) Cards con malla de portería más visible */
+.card.goalnet{
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.12) 0 2px, transparent 2px 12px),
+    var(--card-bg);
+  border: 1px solid rgba(255,255,255,.18);
+}
+.card.goalnet .card-body { backdrop-filter: blur(3px); }
+
+/* C) Franja “camiseta” bien marcada en la parte superior de cada tile */
+.kit-stripe{
+  min-height: 56px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 4px, transparent 4px 14px);
+}
+
+/* D) Banner de estadio con más relieve */
+.stadium-banner{
+  background: linear-gradient(180deg, #1e4530, #163526);
+  border-color: rgba(255,255,255,.18);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+.stadium-banner i{ color: var(--accent-gold); filter: drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
+
+/* E) Botón principal más “trofeo” */
+.btn-primary.kick{
+  letter-spacing:.2px;
+  box-shadow: 0 12px 28px rgba(245,197,66,.38);
+}
+.btn-primary.kick:hover{ transform: translateY(-2px) scale(1.01); }
+
+/* F) Hero de cancha más vivo */
+.ar-stage{
+  background: radial-gradient(900px 420px at 50% 18%, #1f9d5b, #0b4f2b);
+  outline: 2px solid rgba(255,255,255,.12);
+}
+.ar-stage::after{ border-color: rgba(234,247,237,.35); }
+
+/* G) Íconos dentro de tiles más grandes y brillantes */
+.card .bi{ color: var(--line-white); opacity:.95; }
+.card .bi.fs-1{ font-size: 2.2rem !important; }
+
+/* H) Banderines más visibles */
+.corner-flag{ filter: drop-shadow(0 3px 3px rgba(0,0,0,.45)); }
+
+/* I) Variante clara (cuando actives light) un poco más saturada */
+:root[data-bs-theme="light"] body{
+  background: radial-gradient(1200px 600px at 50% -10%, #e1f5e9 0%, #cfeee0 50%, #bfe6d3 100%);
+}
+/* Variante compacta del hero de la cancha (para Home) */
+.ar-hero {
+  height: 36vh;          /* antes ocupaba casi toda la pantalla */
+  min-height: 220px;     /* asegura altura mínima bonita */
+  max-height: 420px;     /* evita que se haga gigante en pantallas grandes */
+}
+
+/* La barra siempre por encima de overlays/canvas */
+.tabbar{
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 2000;              /* subirla */
+}
+
+.tabbar a{
+  pointer-events: auto;       /* por si acaso */
+  position: relative;
+  z-index: 1;
+}

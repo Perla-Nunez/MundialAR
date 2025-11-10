@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="es" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>Mundial AR · Noticias</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Tabbar -->
+  <nav class="tabbar" aria-label="Navegación inferior">
+    <a href="index.html"><i class="bi bi-house-door" aria-hidden="true"></i><span>Inicio</span></a>
+    <a href="ar.html"><i class="bi bi-camera" aria-hidden="true"></i><span>AR</span></a>
+    <a href="trivias.html"><i class="bi bi-patch-question" aria-hidden="true"></i><span>Trivias</span></a>
+    <a href="paises.html"><i class="bi bi-cube" aria-hidden="true"></i><span>Países</span></a>
+    <a class="active" href="noticias.html"><i class="bi bi-newspaper" aria-hidden="true"></i><span>Noticias</span></a>
+  </nav>
+
+  <!-- Bootstrap + Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Tu CSS -->
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .news-img{ width:100%; height:auto; border-radius:.6rem; object-fit:cover; }
+    .meta { font-size:.85rem; color: var(--bs-secondary); }
+    .badge-pill{ border-radius: 999px; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="navbar navbar-dark bg-black sticky-top shadow-sm">
+    <div class="container-fluid">
+      <a class="btn btn-outline-light btn-sm" href="index.html" aria-label="Volver al inicio">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+      </a>
+
+      <span class="navbar-brand ms-2 d-flex align-items-center gap-2">
+        <i class="bi bi-newspaper" aria-hidden="true"></i> Noticias &amp; Sedes
+      </span>
+
+      <div class="d-flex gap-2">
+        <button id="themeToggle" class="btn btn-outline-light btn-sm" aria-label="Cambiar tema">
+          <i class="bi bi-brightness-high-fill"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido -->
+  <main class="container py-4 mb-5">
+    <p class="meta mb-3">Actualizado: 10 nov 2025 · Fuente: FIFA / Reuters / AP</p>
+
+    <!-- Fechas y formato -->
+    <article class="card mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-1">Fechas confirmadas</h2>
+        <small class="text-secondary d-block mb-2">11 de junio – 19 de julio de 2026</small>
+        <ul class="mb-2">
+          <li><strong>Partido inaugural:</strong> 11 de junio, Estadio Azteca (CDMX).</li>
+          <li><strong>Final:</strong> 19 de julio, MetLife Stadium (New York/New Jersey).</li>
+        </ul>
+        <div class="meta">Detalles oficiales del calendario en FIFA.</div>
+        <a class="btn btn-sm btn-outline-primary mt-2" href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/match-schedule-fixtures-results-teams-stadiums" target="_blank" rel="noopener">Ver calendario en FIFA</a>
+      </div>
+    </article>
+
+    <article class="card mb-4">
+      <div class="card-body">
+        <span class="badge text-bg-success badge-pill mb-2">Nuevo Formato</span>
+        <h2 class="h6 mb-1">48 equipos · 12 grupos de 4 · 104 partidos</h2>
+        <p class="mb-2">Clasifican a 16avos (Ronda de 32) los dos primeros de cada grupo <em>y</em> los 8 mejores terceros.</p>
+        <div class="meta">Confirmado por FIFA.</div>
+        <a class="btn btn-sm btn-outline-primary mt-2" href="https://www.fifa.com/en/articles/article-fifa-world-cup-2026-mexico-canada-usa-new-format-tournament-football-soccer" target="_blank" rel="noopener">Cómo funciona el formato</a>
+      </div>
+    </article>
+
+    <!-- Inaugural / Final con imágenes -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-lg-6">
+        <article class="card h-100">
+          <img class="news-img" loading="lazy" alt="Estadio Azteca desde el aire"
+               src="https://commons.wikimedia.org/wiki/Special:FilePath/Estadio_Azteca1706p2.jpg">
+          <div class="card-body">
+            <h3 class="h6 mb-1">Inaugural en el Azteca</h3>
+            <small class="text-secondary d-block mb-2">CDMX · 11 de junio de 2026</small>
+            <p class="mb-2">México abre el Mundial en el mítico Azteca, que será el primer estadio en albergar tres inauguraciones mundialistas.</p>
+            <div class="d-flex gap-2">
+              <a class="btn btn-sm btn-outline-primary" href="https://www.reuters.com/sports/soccer/mexicos-estadio-azteca-host-opening-match-2026-world-cup-2024-02-04/" target="_blank" rel="noopener">Nota Reuters</a>
+              <a class="btn btn-sm btn-outline-secondary" href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/estadio-azteca-mexico-city-host-opening-match-world-cup-2026" target="_blank" rel="noopener">Anuncio FIFA</a>
+            </div>
+          </div>
+        </article>
+      </div>
+      <div class="col-12 col-lg-6">
+        <article class="card h-100">
+          <img class="news-img" loading="lazy" alt="MetLife Stadium (vista aérea)"
+               src="https://commons.wikimedia.org/wiki/Special:FilePath/Metlife%20stadium%20%28Aerial%20view%29.jpg">
+          <div class="card-body">
+            <h3 class="h6 mb-1">Final en New York/New Jersey</h3>
+            <small class="text-secondary d-block mb-2">MetLife Stadium · 19 de julio de 2026</small>
+            <p class="mb-2">La gran final se jugará en East Rutherford. Kickoff y logística se definen tras el sorteo final.</p>
+            <a class="btn btn-sm btn-outline-primary" href="https://apnews.com/article/2026-world-cup-schedule-66c16c2e5f22d6c63ead069e0958ad97" target="_blank" rel="noopener">AP: detalle oficial</a>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Semifinales -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-lg-6">
+        <article class="card h-100">
+          <img class="news-img" loading="lazy" alt="AT&T Stadium interior"
+               src="https://commons.wikimedia.org/wiki/Special:FilePath/ATT_Stadium_Interior.jpg">
+          <div class="card-body">
+            <h3 class="h6 mb-1">Semifinal 1: Dallas (AT&amp;T Stadium)</h3>
+            <small class="text-secondary d-block mb-2">14 de julio de 2026</small>
+            <a class="btn btn-sm btn-outline-primary" href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/dallas-stadium-host-nine-world-cup-matches" target="_blank" rel="noopener">FIFA: Dallas sede</a>
+          </div>
+        </article>
+      </div>
+      <div class="col-12 col-lg-6">
+        <article class="card h-100">
+          <img class="news-img" loading="lazy" alt="Mercedes-Benz Stadium interior"
+               src="https://commons.wikimedia.org/wiki/Special:FilePath/Mercedes-Benz_Stadium_Interior_in_2024.jpg">
+          <div class="card-body">
+            <h3 class="h6 mb-1">Semifinal 2: Atlanta (Mercedes-Benz Stadium)</h3>
+            <small class="text-secondary d-block mb-2">15 de julio de 2026</small>
+            <a class="btn btn-sm btn-outline-primary" href="https://www.atlutd.com/news/atlanta-georgia-host-eight-fifa-world-cup-2026-matches-semifinal" target="_blank" rel="noopener">Anuncio local</a>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Sedes (lista) -->
+    <article class="card mb-4">
+      <div class="card-body">
+        <h2 class="h6 mb-2">Host cities confirmadas (16)</h2>
+        <p class="mb-2">Canadá: Toronto, Vancouver · México: CDMX, Guadalajara, Monterrey · EE.UU.: Atlanta, Boston, Dallas, Houston, Kansas City, Los Ángeles, Miami, New York/New Jersey, Filadelfia, San Francisco Bay Area, Seattle.</p>
+        <div class="meta">Listado oficial de FIFA.</div>
+        <a class="btn btn-sm btn-outline-primary mt-2" href="https://www.fifa.com/es/tournaments/mens/worldcup/canadamexicousa2026/host-cities" target="_blank" rel="noopener">Ver sedes</a>
+      </div>
+    </article>
+
+    <!-- Sorteo final -->
+    <article class="card mb-4">
+      <div class="card-body">
+        <span class="badge text-bg-info badge-pill mb-2">Próximo hito</span>
+        <h2 class="h6 mb-1">Sorteo Final · 5 de diciembre de 2025</h2>
+        <p class="mb-2">Lugar: Kennedy Center (Washington, D.C.). Hora estimada: 12:00 ET. México será cabeza del Grupo A; Canadá, del B; EE.UU., del D.</p>
+        <div class="d-flex gap-2">
+          <a class="btn btn-sm btn-outline-primary" href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/final-draw-washington-dc-5-december" target="_blank" rel="noopener">FIFA: sede y fecha</a>
+          <a class="btn btn-sm btn-outline-secondary" href="https://www.reuters.com/sports/soccer/kennedy-center-host-2026-world-cup-draw-trump-announces-2025-08-22/" target="_blank" rel="noopener">Cobertura Reuters</a>
+        </div>
+      </div>
+    </article>
+
+    <!-- Entradas -->
+    <article class="card mb-4">
+      <div class="card-body">
+        <h2 class="h6 mb-1">Boletos &amp; Hospitalidad</h2>
+        <p class="mb-2">FIFA implementará <strong>precios dinámicos</strong> (desde ~USD $60 en fase de grupos; la final puede superar los $6,000 según demanda). Hospitalidad oficial ya disponible.</p>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-sm btn-outline-primary" href="https://www.fifa.com/en/tickets" target="_blank" rel="noopener">Tickets FIFA</a>
+          <a class="btn btn-sm btn-outline-secondary" href="https://fifaworldcup26.hospitality.fifa.com/mx/es" target="_blank" rel="noopener">Hospitalidad (On Location)</a>
+          <a class="btn btn-sm btn-outline-secondary" href="https://www.reuters.com/sports/soccer/fifa-use-dynamic-pricing-world-cup-ticket-sales-with-seats-starting-60-2025-09-03/" target="_blank" rel="noopener">Nota sobre precios</a>
+        </div>
+      </div>
+    </article>
+
+    <!-- Mascotas -->
+    <article class="card mb-4">
+      <div class="card-body">
+        <span class="badge text-bg-warning badge-pill mb-2">Mascotas</span>
+        <h2 class="h6 mb-1">Maple (Canadá), Zayu (México) y Clutch (EE.UU.)</h2>
+        <p class="mb-2">Trío de mascotas oficiales presentadas por FIFA en 2025: un alce, un jaguar y un águila calva que representan a los países anfitriones.</p>
+        <a class="btn btn-sm btn-outline-primary" href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/clutch-maple-zayu-mascots-unveiled" target="_blank" rel="noopener">Conócelas en FIFA</a>
+      </div>
+    </article>
+
+    <!-- Clasificados (snapshot) -->
+    <article class="card mb-4">
+      <div class="card-body">
+        <h2 class="h6 mb-1">Equipos ya clasificados (corte: oct–nov 2025)</h2>
+        <p class="mb-2">FIFA reporta que ya hay <strong>~28 selecciones</strong> con boleto. Entre ellas: México, Canadá, EE.UU. (anfitriones), Argentina, Japón, Irán, Nueva Zelanda, Uzbekistán, Catar y Arabia Saudita; además de varias europeas en vías de asegurar pase en noviembre.</p>
+        <div class="meta">Seguimiento oficial de clasificados en FIFA.</div>
+        <a class="btn btn-sm btn-outline-primary mt-2" href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/world-cup-2026-who-has-qualified" target="_blank" rel="noopener">Lista en FIFA</a>
+      </div>
+    </article>
+
+    <!-- Azteca en obras -->
+    <article class="card mb-5">
+      <div class="card-body">
+        <h2 class="h6 mb-1">Azteca: remodelación y reapertura previa</h2>
+        <p class="mb-2">El estadio se moderniza para el torneo y su reapertura está prevista antes de junio de 2026. Durante el Mundial usará nombre “genérico” por reglas comerciales.</p>
+        <a class="btn btn-sm btn-outline-primary" href="https://www.reuters.com/sports/soccer/revamped-azteca-stadium-reopen-next-march-ahead-2026-world-cup-2025-05-07/" target="_blank" rel="noopener">Reuters: avance de obras</a>
+      </div>
+    </article>
+
+    <!-- Bonus: entretenimiento en la final -->
+    <article class="card mb-5">
+      <div class="card-body">
+        <span class="badge text-bg-danger badge-pill mb-2">Novedad</span>
+        <h2 class="h6 mb-1">La final tendrá show de medio tiempo</h2>
+        <p class="mb-2">Por primera vez en una final de Mundial habrá espectáculo de medio tiempo, organizado con Global Citizen y Coldplay.</p>
+        <a class="btn btn-sm btn-outline-primary" href="https://www.reuters.com/sports/soccer/world-cup-2026-final-new-jersey-feature-halftime-show-2025-03-05/" target="_blank" rel="noopener">Reuters: anuncio</a>
+      </div>
+    </article>
+  </main>
+
+  <!-- JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Toggle de tema
+    const html = document.documentElement;
+    const toggleBtn = document.getElementById("themeToggle");
+    const icon = toggleBtn.querySelector("i");
+    toggleBtn.addEventListener("click", () => {
+      const current = html.getAttribute("data-bs-theme") || "dark";
+      const next = current === "dark" ? "light" : "dark";
+      html.setAttribute("data-bs-theme", next);
+      icon.className = next === "dark" ? "bi bi-brightness-high-fill" : "bi bi-moon-fill";
+    });
+  </script>
+</body>
+</html>

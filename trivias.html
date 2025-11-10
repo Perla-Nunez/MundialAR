@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="es" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>Mundial AR · Trivias</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Fuentes (Bebas + Rubik) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap + Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Tu CSS (después de Bootstrap) -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="navbar navbar-dark bg-black sticky-top shadow-sm">
+    <div class="container-fluid">
+      <a class="btn btn-outline-light btn-sm" href="index.html" aria-label="Volver al inicio">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+      </a>
+
+      <span class="navbar-brand ms-2 d-flex align-items-center gap-2">
+        <i class="bi bi-patch-question" aria-hidden="true"></i> Trivias
+      </span>
+
+      <div class="d-flex gap-2">
+        <!-- Botón cambio de tema -->
+        <button id="themeToggle" class="btn btn-outline-light btn-sm" aria-label="Cambiar tema">
+          <i class="bi bi-brightness-high-fill"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido -->
+  <main class="container py-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h5 m-0">5 preguntas al azar (modo práctica)</h1>
+      <button id="btnNew" class="btn btn-primary btn-sm">
+        <i class="bi bi-shuffle"></i> Nueva trivia
+      </button>
+    </div>
+
+    <div id="quiz"></div>
+
+    <div class="alert alert-secondary small mt-3" role="alert">
+      Sin puntos ni rachas: puro aprendizaje relajado. Cada sesión trae 5 preguntas al azar (una por país del banco). Mezcla cuantas veces quieras.
+    </div>
+  </main>
+
+  <!-- Tabbar -->
+  <nav class="tabbar" aria-label="Navegación inferior">
+    <a href="index.html"><i class="bi bi-house-door" aria-hidden="true"></i><span>Inicio</span></a>
+    <a href="ar.html"><i class="bi bi-camera" aria-hidden="true"></i><span>AR</span></a>
+    <a class="active" href="trivias.html"><i class="bi bi-patch-question" aria-hidden="true"></i><span>Trivias</span></a>
+    <a href="paises.html"><i class="bi bi-cube" aria-hidden="true"></i><span>Países</span></a>
+    <a href="noticias.html"><i class="bi bi-newspaper" aria-hidden="true"></i><span>Noticias</span></a>
+  </nav>
+
+  <!-- JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // === Banco de preguntas (1 por país) ===
+    // Edita libremente los textos/opciones; asegura que "answer" apunte al índice correcto en "options".
+    const TRIVIA_BANK = [
+      { country: "Argentina", flag: "🇦🇷",
+        question: "¿Cuántas Copas del Mundo tiene Argentina?",
+        options: ["2", "3", "4", "1"], answer: 1
+      },
+      { country: "Australia", flag: "🇦🇺",
+        question: "¿En qué confederación juega Australia?",
+        options: ["AFC (Asia)", "UEFA", "CONCACAF", "CONMEBOL"], answer: 0
+      },
+      { country: "Brasil", flag: "🇧🇷",
+        question: "¿Cuántos Mundiales ha ganado Brasil?",
+        options: ["3", "4", "5", "6"], answer: 2
+      },
+      { country: "Canadá", flag: "🇨🇦",
+        question: "¿Cuál es la capital de Canadá?",
+        options: ["Toronto", "Montreal", "Ottawa", "Vancouver"], answer: 2
+      },
+      { country: "Corea del Sur", flag: "🇰🇷",
+        question: "¿En qué año coorganizó Corea del Sur la Copa del Mundo?",
+        options: ["1998", "2002", "2010", "2014"], answer: 1
+      },
+      { country: "Ecuador", flag: "🇪🇨",
+        question: "¿Cuál es la moneda oficial de Ecuador?",
+        options: ["Peso ecuatoriano", "Dólar estadounidense", "Sol", "Guaraní"], answer: 1
+      },
+      { country: "Estados Unidos", flag: "🇺🇸",
+        question: "Estados Unidos será sede del 2026 junto con...",
+        options: ["México y Canadá", "Brasil y Argentina", "Japón y Corea", "España y Portugal"], answer: 0
+      },
+      { country: "Irán", flag: "🇮🇷",
+        question: "¿En qué continente está Irán?",
+        options: ["Europa", "Asia", "África", "Oceanía"], answer: 1
+      },
+      { country: "Japón", flag: "🇯🇵",
+        question: "¿Cuál es la capital de Japón?",
+        options: ["Kioto", "Tokio", "Osaka", "Nara"], answer: 1
+      },
+      { country: "Jordania", flag: "🇯🇴",
+        question: "¿Cuál es la capital de Jordania?",
+        options: ["Doha", "Amán", "Riad", "Damasco"], answer: 1
+      },
+      { country: "México", flag: "🇲🇽",
+        question: "¿En qué años fue anfitrión México del Mundial?",
+        options: ["1962 y 1970", "1970 y 1986", "1986 y 1994", "1994 y 2006"], answer: 1
+      },
+      { country: "Nueva Zelanda", flag: "🇳🇿",
+        question: "¿En qué confederación compite Nueva Zelanda?",
+        options: ["OFC (Oceanía)", "AFC", "UEFA", "CONCACAF"], answer: 0
+      },
+      { country: "Uzbekistán", flag: "🇺🇿",
+        question: "¿En qué continente se ubica Uzbekistán?",
+        options: ["África", "Europa", "Asia", "América"], answer: 2
+      }
+    ];
+
+    let CURRENT = [];
+
+    // Utilidades
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+    function pickFive() {
+      const copy = shuffle([...TRIVIA_BANK]);
+      return copy.slice(0, 5);
+    }
+
+    // Renderizado
+    function renderQuiz(list) {
+      const container = document.getElementById("quiz");
+      container.innerHTML = "";
+
+      list.forEach((q, idx) => {
+        const card = document.createElement("div");
+        card.className = "card mb-3";
+        card.innerHTML = `
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="fs-5">${q.flag}</span>
+              <h3 class="h6 m-0">${q.country}</h3>
+              <span class="badge text-bg-secondary ms-auto">Pregunta ${idx + 1}/5</span>
+            </div>
+            <p class="mb-3 fw-medium">${q.question}</p>
+            <div class="list-group" role="group" aria-label="Opciones">
+              ${q.options.map((opt, i) =>
+                `<button class="list-group-item list-group-item-action"
+                         data-qindex="${idx}" data-ans="${i}">
+                   ${opt}
+                 </button>`).join("")}
+            </div>
+            <div class="mt-2 small d-none" id="feedback-${idx}" aria-live="polite"></div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      // Listeners por pregunta
+      container.querySelectorAll(".list-group-item").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const qi = parseInt(btn.dataset.qindex, 10);
+          const ai = parseInt(btn.dataset.ans, 10);
+          const parent = btn.closest(".list-group");
+          const buttons = parent.querySelectorAll("button");
+
+          // Evitar doble respuesta
+          if ([...buttons].some(b => b.disabled)) return;
+
+          const correct = CURRENT[qi].answer;
+
+          buttons.forEach((b, bi) => {
+            b.disabled = true;
+            if (bi === correct) b.classList.add("list-group-item-success");
+            else if (bi === ai) b.classList.add("list-group-item-danger");
+          });
+
+          const fb = document.getElementById(`feedback-${qi}`);
+          fb.classList.remove("d-none");
+          fb.textContent = (ai === correct)
+            ? "¡Correcto!"
+            : `Incorrecto. Respuesta: ${CURRENT[qi].options[correct]}`;
+        });
+      });
+    }
+
+    function newTrivia() {
+      CURRENT = pickFive();
+      renderQuiz(CURRENT);
+    }
+
+    // Toggle de tema (igual que en index/ar)
+    const html = document.documentElement;
+    const toggleBtn = document.getElementById("themeToggle");
+    const icon = toggleBtn.querySelector("i");
+    toggleBtn.addEventListener("click", () => {
+      const current = html.getAttribute("data-bs-theme") || "dark";
+      const next = current === "dark" ? "light" : "dark";
+      html.setAttribute("data-bs-theme", next);
+      icon.className = next === "dark"
+        ? "bi bi-brightness-high-fill"
+        : "bi bi-moon-fill";
+    });
+
+    // Init
+    document.getElementById("btnNew").addEventListener("click", newTrivia);
+    newTrivia();
+  </script>
+</body>
+</html>

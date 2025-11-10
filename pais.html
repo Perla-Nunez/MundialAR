@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="es" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>Mundial AR · Detalle de país</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    :root{ --hero-h: 42vh; }
+    body{ background:#0b0d12; }
+    .topbar{ background: rgba(0,0,0,.35); backdrop-filter: blur(6px); }
+
+    /* Hero */
+    .hero { position: relative; height: var(--hero-h); overflow: hidden; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .hero .bg-flag{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter: blur(8px) saturate(1.1) brightness(.85); transform: scale(1.1); }
+    .hero .shade{ position:absolute; inset:0; background:
+        radial-gradient(60% 100% at 50% 0%, rgba(0,0,0,.15), transparent 60%),
+        linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.2) 40%, rgba(0,0,0,.6)); }
+    .hero .content{ position:relative; z-index:2; height:100%; display:flex; align-items:flex-end; padding: 2rem 0; }
+
+    /* Cards */
+    .info-card{ background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.10); border-radius: 18px; }
+    .flag-inline{ width: 42px; height: 42px; vertical-align: -10px; }
+    .label{ color:#9aa4b2; min-width:170px; }
+
+    /* Video + filtros */
+    #videoPlayer{ width:100%; height:100%; border-radius:12px; background:#000; object-fit:cover; }
+    .filter-row .form-range{ height: .4rem; }
+    .filter-row label{ width: 140px; color:#9aa4b2; }
+    .filter-badge{ font-variant-numeric: tabular-nums; min-width: 3.2em; display:inline-block; text-align:right; }
+
+    .kbd{ padding:.15rem .35rem; border:1px solid rgba(255,255,255,.2); border-radius:.35rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    pre{ white-space:pre-wrap; user-select:all; }
+
+    /* Overlay de error */
+    #videoError{
+      display:none; border-radius:12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="sticky-top">
+    <div class="topbar d-flex align-items-center justify-content-between px-3 py-2 border-bottom border-success-subtle">
+      <a class="btn btn-outline-light btn-sm" href="paises.html" aria-label="Volver">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <span class="navbar-brand fw-bold">Detalle de país</span>
+      <span></span>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <img id="heroFlag" class="bg-flag" alt="">
+    <div class="shade"></div>
+    <div class="container content">
+      <div>
+        <h1 class="display-6 mb-1" id="countryTitle"></h1>
+        <p class="text-secondary mb-0" id="countrySubtitle"></p>
+      </div>
+    </div>
+  </section>
+
+  <main class="container my-4">
+    <div class="row g-4">
+      <!-- Texto e indicadores -->
+      <div class="col-12 col-lg-6">
+        <div class="p-4 info-card h-100">
+          <h2 class="h4 mb-2">Historia y datos</h2>
+          <p class="text-secondary" id="countrySummary">Cargando…</p>
+          <div class="mt-3">
+            <div class="d-flex gap-3 py-1"><div class="label">Títulos mundiales:</div><div id="dTitulos" class="fw-semibold">—</div></div>
+            <div class="d-flex gap-3 py-1"><div class="label">Participaciones:</div><div id="dParticipaciones" class="fw-semibold">—</div></div>
+            <div class="d-flex gap-3 py-1"><div class="label">Confederación:</div><div id="dConfed" class="fw-semibold">—</div></div>
+            <div class="d-flex gap-3 py-1"><div class="label">Continente:</div><div id="dContinente" class="fw-semibold">—</div></div>
+            <div class="d-flex gap-3 py-1"><div class="label">Entrenador:</div><div id="dCoach" class="fw-semibold">—</div></div>
+            <div class="d-flex gap-3 py-1"><div class="label">Mejor jugador:</div><div id="dStar" class="fw-semibold">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video + filtros -->
+      <div class="col-12 col-lg-6">
+        <div class="p-3 info-card h-100">
+          <h2 class="h5 mb-3">Video</h2>
+
+          <div id="videoError" class="alert alert-warning mb-3">
+            <strong>El video no se pudo cargar.</strong><br>
+            URL: <code id="dbgUrl">—</code><br>
+            Código: <code id="dbgCode">—</code> · ReadyState: <code id="dbgRS">—</code><br>
+            Tip: verifica que el archivo exista (ruta/extension), que el códec sea H.264/AAC y que el servidor sirva <span class="kbd">Content-Type: video/mp4</span> y <span class="kbd">Accept-Ranges: bytes</span>.
+          </div>
+
+          <div class="ratio ratio-16x9 mb-3">
+            <video id="videoPlayer" controls playsinline preload="metadata" poster="">
+              Tu navegador no soporta video HTML5.
+            </video>
+          </div>
+
+          <!-- Panel de filtros -->
+          <div id="filtersPanel">
+            <div class="filter-row d-flex align-items-center gap-3 mb-2">
+              <label for="fBrightness" class="form-label mb-0">Brillo</label>
+              <input id="fBrightness" type="range" class="form-range" min="50" max="200" step="1" value="100">
+              <span class="filter-badge text-secondary"><span id="vBrightness">100</span>%</span>
+            </div>
+            <div class="filter-row d-flex align-items-center gap-3 mb-2">
+              <label for="fContrast" class="form-label mb-0">Contraste</label>
+              <input id="fContrast" type="range" class="form-range" min="50" max="200" step="1" value="100">
+              <span class="filter-badge text-secondary"><span id="vContrast">100</span>%</span>
+            </div>
+            <div class="filter-row d-flex align-items-center gap-3 mb-2">
+              <label for="fSaturate" class="form-label mb-0">Saturación</label>
+              <input id="fSaturate" type="range" class="form-range" min="0" max="300" step="1" value="100">
+              <span class="filter-badge text-secondary"><span id="vSaturate">100</span>%</span>
+            </div>
+            <div class="filter-row d-flex align-items-center gap-3 mb-2">
+              <label for="fHue" class="form-label mb-0">Matiz</label>
+              <input id="fHue" type="range" class="form-range" min="0" max="360" step="1" value="0">
+              <span class="filter-badge text-secondary"><span id="vHue">0</span>°</span>
+            </div>
+            <div class="filter-row d-flex align-items-center gap-3 mb-2">
+              <label for="fGrayscale" class="form-label mb-0">Blanco/Negro</label>
+              <input id="fGrayscale" type="range" class="form-range" min="0" max="100" step="1" value="0">
+              <span class="filter-badge text-secondary"><span id="vGrayscale">0</span>%</span>
+            </div>
+            <div class="filter-row d-flex align-items-center gap-3 mb-3">
+              <label for="fSepia" class="form-label mb-0">Sepia</label>
+              <input id="fSepia" type="range" class="form-range" min="0" max="100" step="1" value="0">
+              <span class="filter-badge text-secondary"><span id="vSepia">0</span>%</span>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button id="btnReset" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </button>
+              <button id="btnPlay" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-play-fill"></i> Reproducir / Pausa
+              </button>
+            </div>
+          </div>
+
+          <!-- Compatibilidad / FFmpeg -->
+          <details class="mt-3">
+            <summary class="text-secondary">Compatibilidad & FFmpeg (ayuda)</summary>
+            <div class="mt-2 small">
+              <p class="mb-1"><span class="kbd">H.264</span> soporte: <strong id="compatH264">—</strong> · <span class="kbd">AAC</span> soporte: <strong id="compatAAC">—</strong></p>
+              <p class="mb-2">Combo <span class="kbd">video/mp4; codecs="avc1.42E01E, mp4a.40.2"</span>: <strong id="canPlayCombo">—</strong></p>
+
+              <p class="mb-1">FFmpeg “web-ready” (MP4 H.264/AAC + faststart):</p>
+<pre id="cmdWebReady">ffmpeg -i input.any \
+  -c:v libx264 -preset medium -crf 22 -profile:v high -level 4.1 -pix_fmt yuv420p \
+  -c:a aac -b:a 160k \
+  -movflags +faststart \
+  output-web.mp4</pre>
+
+              <p class="mt-3 mb-1">Forzar 1080p @30fps:</p>
+<pre id="cmd1080">ffmpeg -i input.any -vf "scale=-2:1080,fps=30" \
+  -c:v libx264 -preset medium -crf 22 -profile:v high -level 4.1 -pix_fmt yuv420p \
+  -c:a aac -b:a 160k -movflags +faststart output-1080p.mp4</pre>
+
+              <p class="mt-3 mb-1">Solo re-empaquetar (si ya es H.264 + AAC):</p>
+<pre id="cmdRemux">ffmpeg -i input.mp4 -c copy -movflags +faststart output-faststart.mp4</pre>
+
+              <p class="mt-3 mb-1">Servidor/Hosting:</p>
+              <ul class="mb-2">
+                <li><span class="kbd">Content-Type: video/mp4</span></li>
+                <li><span class="kbd">Accept-Ranges: bytes</span> (permite “seek”)</li>
+                <li>Si sirves desde otro dominio, habilita CORS (<span class="kbd">Access-Control-Allow-Origin: *</span>)</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ——— DATA: define MP4 y poster por país (rutas relativas a este HTML) ———
+    const DATA = {
+      ar:{ name:"Argentina", confed:"CONMEBOL", continente:"América del Sur", resumen:"Selección de Argentina.", titulos:3, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/argentina.mp4", poster:"videos/ar.jpg" },
+      au:{ name:"Australia", confed:"AFC", continente:"Oceanía/AFC", resumen:"Selección de Australia.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/AuJp.mp4", poster:"videos/au.jpg" },
+      br:{ name:"Brasil", confed:"CONMEBOL", continente:"América del Sur", resumen:"Selección de Brasil.", titulos:5, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/coreaBrazil.mp4", poster:"videos/br.jpg" },
+      ca:{ name:"Canadá", confed:"CONCACAF", continente:"América del Norte", resumen:"Anfitrión en 2026.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/can.mp4", poster:"videos/ca.jpg" },
+      kr:{ name:"Corea del Sur", confed:"AFC", continente:"Asia", resumen:"Selección de Corea del Sur.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/coreaBrazil.mp4", poster:"videos/kr.jpg" },
+      ec:{ name:"Ecuador", confed:"CONMEBOL", continente:"América del Sur", resumen:"Selección de Ecuador.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/ecus.mp4", poster:"videos/ec.jpg" },
+      us:{ name:"Estados Unidos", confed:"CONCACAF", continente:"América del Norte", resumen:"Anfitrión en 2026.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/ecus.mp4", poster:"videos/us.jpg" },
+      ir:{ name:"Irán", confed:"AFC", continente:"Asia", resumen:"Selección de Irán.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/irnz.mp4", poster:"videos/ir.jpg" },
+      jp:{ name:"Japón", confed:"AFC", continente:"Asia", resumen:"Selección de Japón.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/AuJp.mp4", poster:"videos/jp.jpg" },
+      jo:{ name:"Jordania", confed:"AFC", continente:"Asia", resumen:"Selección de Jordania.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/jor.mp4", poster:"videos/jo.jpg" },
+      mx:{ name:"México", confed:"CONCACAF", continente:"América del Norte", resumen:"México ha participado en múltiples ediciones.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/mexico.mp4", poster:"videos/mx.jpg" },
+      nz:{ name:"Nueva Zelanda", confed:"OFC", continente:"Oceanía", resumen:"Selección de Nueva Zelanda.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/irnz.mp4", poster:"videos/nz.jpg" },
+      uz:{ name:"Uzbekistán", confed:"AFC", continente:"Asia", resumen:"Selección de Uzbekistán.", titulos:0, participaciones:"N/D", coach:"—", star:"—", mp4:"videos/uz.mp4", poster:"videos/uz.jpg" }
+    };
+
+    // ——— Utilidades ———
+    const $ = s => document.querySelector(s);
+    const iso = (new URLSearchParams(location.search).get('id')||'').toLowerCase();
+    const c = DATA[iso];
+    const CODEC_HINT = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"'; // H.264 Baseline/Main + AAC-LC
+    const flagUrlById = iso2 => `https://flagcdn.com/${iso2}.svg`;
+    const ensureMp4 = p => /\.mp4$/i.test(p) ? p : `${p}.mp4`;
+
+    const video = $('#videoPlayer');
+
+    // —— Estado de filtros
+    const filters = { brightness:100, contrast:100, saturate:100, hue:0, grayscale:0, sepia:0 };
+    function applyFilters(){
+      const f = `brightness(${filters.brightness}%) contrast(${filters.contrast}%) saturate(${filters.saturate}%) hue-rotate(${filters.hue}deg) grayscale(${filters.grayscale}%) sepia(${filters.sepia}%)`;
+      video.style.filter = f;
+    }
+    function bindSlider(id, key, unit, displayId){
+      const el = $(id), out = $(displayId);
+      const update = ()=>{ filters[key] = Number(el.value); out.textContent = el.value; applyFilters(); };
+      el.addEventListener('input', update);
+      update();
+    }
+
+    // —— Compat checks
+    function updateCompat(){
+      const h264 = video.canPlayType('video/mp4; codecs="avc1.42E01E"'); // H.264
+      const aac  = video.canPlayType('audio/mp4; codecs="mp4a.40.2"');   // AAC-LC
+      const full = video.canPlayType(CODEC_HINT);
+      $('#compatH264').textContent = h264 || 'no';
+      $('#compatAAC').textContent  = aac  || 'no';
+      $('#canPlayCombo').textContent = full || 'no';
+    }
+
+    function showVideoError(code){
+      $('#dbgUrl').textContent  = video.currentSrc || '(sin URL)';
+      $('#dbgCode').textContent = code ?? 'desconocido';
+      $('#dbgRS').textContent   = video.readyState;
+      $('#videoError').style.display = 'block';
+    }
+
+    if (!c){
+      document.body.innerHTML = '<div class="container py-5"><h1 class="h4">País no encontrado</h1><p><a href="paises.html" class="btn btn-outline-light btn-sm">Volver</a></p></div>';
+    } else {
+      // Hero & datos
+      const flagSrc = flagUrlById(iso);
+      $('#heroFlag').src = flagSrc;
+      $('#heroFlag').alt = `Bandera de ${c.name}`;
+      $('#countryTitle').innerHTML = `<img class="flag-inline me-2" alt="Bandera" src="${flagSrc}"> ${c.name}`;
+      $('#countrySubtitle').textContent = c.resumen || '';
+      $('#dTitulos').textContent = (c.titulos ?? '—');
+      $('#dParticipaciones').textContent = (c.participaciones ?? '—');
+      $('#dConfed').textContent = c.confed || '—';
+      $('#dContinente').textContent = c.continente || '—';
+      $('#dCoach').textContent = c.coach || '—';
+      $('#dStar').textContent = c.star || '—';
+
+      // Video
+      updateCompat();
+
+      const noVideoMsg = $('#noVideoMsg');
+
+      if (c.mp4){
+        const source = document.createElement('source');
+        source.src  = ensureMp4(c.mp4);                 // agrega .mp4 si faltara
+        source.type = CODEC_HINT;                       // hint fuerte de códecs
+        video.innerHTML = '';
+        video.appendChild(source);
+        if (c.poster) video.setAttribute('poster', c.poster);
+
+        // listeners para diagnóstico visible
+        video.addEventListener('error', ()=> showVideoError(video.error && video.error.code));
+        video.addEventListener('stalled', ()=> showVideoError('stalled'));
+        video.addEventListener('loadedmetadata', ()=> $('#videoError').style.display='none');
+
+        video.load();
+
+        // Filtros
+        bindSlider('#fBrightness','brightness','%', '#vBrightness');
+        bindSlider('#fContrast',  'contrast',  '%', '#vContrast');
+        bindSlider('#fSaturate',  'saturate',  '%', '#vSaturate');
+        bindSlider('#fHue',       'hue',       '°', '#vHue');
+        bindSlider('#fGrayscale', 'grayscale', '%', '#vGrayscale');
+        bindSlider('#fSepia',     'sepia',     '%', '#vSepia');
+
+        $('#btnReset').addEventListener('click', ()=>{
+          $('#fBrightness').value = 100;
+          $('#fContrast').value   = 100;
+          $('#fSaturate').value   = 100;
+          $('#fHue').value        = 0;
+          $('#fGrayscale').value  = 0;
+          $('#fSepia').value      = 0;
+          ['#fBrightness','#fContrast','#fSaturate','#fHue','#fGrayscale','#fSepia'].forEach(sel=> $(sel).dispatchEvent(new Event('input')));
+        });
+        $('#btnPlay').addEventListener('click', ()=> video.paused ? video.play() : video.pause());
+
+      } else {
+        // Sin video configurado
+        $('#filtersPanel').classList.add('d-none');
+        noVideoMsg.classList.remove('d-none');
+      }
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
