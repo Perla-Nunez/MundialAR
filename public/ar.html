@@ -18,7 +18,7 @@
     #stage{position:relative;height:70vh}
     .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
     .hud{position:fixed;left:0;right:0;bottom:.75rem;z-index:20;display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem}
-    .info{position:fixed;right:.75rem;bottom:6.5rem;z-index:21;max-width:280px}
+    .info{position:fixed;right:.75rem;top:.75rem;z-index:21;max-width:300px} /* ⬅ arriba */
     .slider-card{position:fixed;left:.75rem;bottom:6.5rem;z-index:21;max-width:300px}
     .form-range{width:240px}
   </style>
@@ -76,7 +76,7 @@
       </div>
     </section>
 
-    <!-- Tarjeta de info -->
+    <!-- Tarjeta de info (ARRIBA) -->
     <div id="card" class="info card bg-dark text-light d-none">
       <div class="card-body p-3">
         <h6 id="nm" class="card-title mb-1">—</h6>
@@ -84,7 +84,7 @@
       </div>
     </div>
 
-    <!-- Slider tamaño -->
+    <!-- Slider tamaño (ABAJO IZQ) -->
     <div class="slider-card card bg-dark text-light">
       <div class="card-body py-2 px-3">
         <label for="sizeRange" class="form-label mb-1">Tamaño modelo: <strong><span id="sizeVal">0.70</span></strong></label>
@@ -105,8 +105,9 @@
 
   <script>
     // ===== Config =====
-    const USE_MODELS = true;                 // usa GLB (si pones false, usa cubos)
-    const FIT = { size: 0.7, mode: "center"}; // "center" = centrado sobre la imagen (lo que pediste)
+    const USE_MODELS = true;                 // usar GLB
+    const FIT = { size: 0.7, mode: "center"}; // centrados sobre el target
+    const SCALE_MIN = 0.01, SCALE_MAX = 10;   // límites por si algún GLB viene marciano
 
     const MODEL_IDS = {
       AR:"#mdl-AR", AU:"#mdl-AU", BR:"#mdl-BR", CA:"#mdl-CA", KR:"#mdl-KR",
@@ -114,21 +115,11 @@
       MX:"#mdl-MX", NZ:"#mdl-NZ", UZ:"#mdl-UZ"
     };
 
-    // 32 índices → 13 países (tus rangos)
+    // 32 índices → 13 países
     const INDEX_TO_CODE = [
-      "AR","AR",
-      "AU","AU","AU","AU",
-      "BR","BR",
-      "CA","CA",
-      "KR","KR",
-      "EC","EC",
-      "US","US",
-      "IR","IR",
-      "JP","JP",
-      "JO","JO",
-      "MX","MX","MX",
-      "NZ","NZ","NZ","NZ","NZ",
-      "UZ","UZ"
+      "AR","AR","AU","AU","AU","AU","BR","BR","CA","CA","KR","KR",
+      "EC","EC","US","US","IR","IR","JP","JP","JO","JO","MX","MX","MX",
+      "NZ","NZ","NZ","NZ","NZ","UZ","UZ"
     ];
 
     const META = {
@@ -147,7 +138,7 @@
       UZ:{name:"Uzbekistán", info:"Capital: Taskent."}
     };
 
-    const COLORS = { // placeholder
+    const COLORS = {
       AR:"#53b3ff", AU:"#3ec4a7", BR:"#1cc94d", CA:"#ff4d57", KR:"#e1e1e1",
       EC:"#ffe24d", US:"#6c9dff", IR:"#3fd870", JP:"#ffffff", JO:"#ff7a7a",
       MX:"#22aa66", NZ:"#2c3ee8", UZ:"#1fc9c9"
@@ -201,28 +192,30 @@
       return wrapper;
     }
 
-    function computeBoundsFromModel(model){ // THREE.Object3D
+    function computeBounds(model){ // THREE.Object3D
       const THREE = AFRAME.THREE;
       const box = new THREE.Box3().setFromObject(model);
       const size = new THREE.Vector3(); box.getSize(size);
       const center = new THREE.Vector3(); box.getCenter(center);
-      return { maxDim: Math.max(size.x, size.y, size.z) || 1e-6, center, min: box.min.clone() };
+      const maxDim = Math.max(size.x, size.y, size.z);
+      return { maxDim: isFinite(maxDim) && maxDim > 0 ? maxDim : 1, center, min: box.min.clone() };
     }
 
     function applyFit(entity, storeObj, {size=0.7, mode="center"} = {}){
-      // entity = <a-entity gltf-model=...> con su object3D/mesh ya montado
       if (!storeObj || !storeObj.maxDim) return;
-      const scale = size / storeObj.maxDim;
+      let scale = size / storeObj.maxDim;
+      scale = Math.min(Math.max(scale, SCALE_MIN), SCALE_MAX); // clamp
 
-      // Escala uniforme
       entity.object3D.scale.set(scale, scale, scale);
 
-      // Offset para centrar (o apoyar)
-      let offset = new AFRAME.THREE.Vector3(-storeObj.center.x, -storeObj.center.y, -storeObj.center.z);
-      if (mode === "floor") offset.y = -storeObj.min.y; // base a y=0
-      offset.multiplyScalar(scale);
+      // centrado (o al piso)
+      const THREE = AFRAME.THREE;
+      const off = new THREE.Vector3(-storeObj.center.x, -storeObj.center.y, -storeObj.center.z);
+      if (mode === "floor") off.y = -storeObj.min.y;
+      off.multiplyScalar(scale);
 
-      entity.object3D.position.set(offset.x, offset.y, offset.z);
+      entity.object3D.position.set(off.x, off.y, off.z);
+      entity.object3D.updateMatrixWorld();
     }
 
     function buildAnchors(){
@@ -236,19 +229,23 @@
         if (USE_MODELS) {
           content = document.createElement("a-entity");
           const src = MODEL_IDS[code] || "";
-          if (!src){ // por si faltara el id
+          if (!src){
             content = makePlaceholder(COLORS[code]);
           } else {
             content.setAttribute("gltf-model", src);
-            // Ajuste cuando el glTF está cargado
             content.addEventListener("model-loaded", (e)=>{
-              const model = e.detail.model; // THREE.Group
-              const data  = computeBoundsFromModel(model);
-              autoFitStore.set(content, data);
-              applyFit(content, data, FIT);
+              // Asegurar matrices y computo estable
+              const model = e.detail.model;
+              if (!model){ console.warn("model-loaded sin model para", code); return; }
+              // Espera 2 frames para que A-Frame asiente jerarquías
+              requestAnimationFrame(()=>requestAnimationFrame(()=>{
+                const data = computeBounds(model);
+                autoFitStore.set(content, data);
+                applyFit(content, data, FIT);
+              }));
             });
-            content.addEventListener("model-error", ()=>{
-              // Fallback si falla el glTF
+            content.addEventListener("model-error", (ev)=>{
+              console.error("Error GLB", code, ev.detail);
               const ph = makePlaceholder(COLORS[code]);
               rot.removeChild(content);
               rot.appendChild(ph);
@@ -264,7 +261,7 @@
         anchor.addEventListener("targetFound", ()=>{
           overlay.style.display = "none";
           current = rot;
-          setSpin(true);            // arranca girando
+          setSpin(true);
           btnSpin.disabled = false;
 
           const m = META[code] || {name: code, info:"—"};
@@ -312,7 +309,6 @@
     sizeRange.addEventListener("input", ()=>{
       FIT.size = parseFloat(sizeRange.value);
       sizeVal.textContent = FIT.size.toFixed(2);
-      // Re-aplica a todos los modelos ya cargados
       document.querySelectorAll('[gltf-model]').forEach(ent=>{
         const data = autoFitStore.get(ent);
         if (data) applyFit(ent, data, FIT);
