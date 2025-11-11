@@ -17,8 +17,10 @@
     body{background:#0b0d12;}
     #stage{position:relative;height:70vh}
     .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-    .hud{position:fixed;left:0;right:0;bottom:.75rem;z-index:20;display:flex;justify-content:center;gap:.5rem}
-    .info{position:fixed;right:.75rem;bottom:4.5rem;z-index:21;max-width:280px}
+    .hud{position:fixed;left:0;right:0;bottom:.75rem;z-index:20;display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem}
+    .info{position:fixed;right:.75rem;bottom:6.5rem;z-index:21;max-width:280px}
+    .slider-card{position:fixed;left:.75rem;bottom:6.5rem;z-index:21;max-width:300px}
+    .form-range{width:240px}
   </style>
 </head>
 <body>
@@ -59,7 +61,7 @@
 
         <!-- Luces -->
         <a-entity light="type: ambient; intensity: 1"></a-entity>
-        <a-entity light="type: directional; intensity: .9" position="1 1 0"></a-entity>
+        <a-entity light="type: directional; intensity: .95" position="1 1 0"></a-entity>
 
         <!-- Cámara -->
         <a-camera look-controls="enabled:false"></a-camera>
@@ -82,6 +84,14 @@
       </div>
     </div>
 
+    <!-- Slider tamaño -->
+    <div class="slider-card card bg-dark text-light">
+      <div class="card-body py-2 px-3">
+        <label for="sizeRange" class="form-label mb-1">Tamaño modelo: <strong><span id="sizeVal">0.70</span></strong></label>
+        <input id="sizeRange" type="range" class="form-range" min="0.2" max="1.5" step="0.05" value="0.7">
+      </div>
+    </div>
+
     <!-- Controles -->
     <div class="hud">
       <button id="btnStart" class="btn btn-primary" disabled>
@@ -95,8 +105,8 @@
 
   <script>
     // ===== Config =====
-    const USE_MODELS = true;     // ⬅️ pon en true para usar tus GLB (o false para cubos)
-    const FIT = { size: 0.7, mode: "floor" }; // tamaño objetivo (unidades A-Frame), y=0 en el piso
+    const USE_MODELS = true;                 // usa GLB (si pones false, usa cubos)
+    const FIT = { size: 0.7, mode: "center"}; // "center" = centrado sobre la imagen (lo que pediste)
 
     const MODEL_IDS = {
       AR:"#mdl-AR", AU:"#mdl-AU", BR:"#mdl-BR", CA:"#mdl-CA", KR:"#mdl-KR",
@@ -137,12 +147,13 @@
       UZ:{name:"Uzbekistán", info:"Capital: Taskent."}
     };
 
-    const COLORS = { // colores para cubos placeholder
+    const COLORS = { // placeholder
       AR:"#53b3ff", AU:"#3ec4a7", BR:"#1cc94d", CA:"#ff4d57", KR:"#e1e1e1",
       EC:"#ffe24d", US:"#6c9dff", IR:"#3fd870", JP:"#ffffff", JO:"#ff7a7a",
       MX:"#22aa66", NZ:"#2c3ee8", UZ:"#1fc9c9"
     };
 
+    // --- Estado/UI ---
     const scene   = document.getElementById("scene");
     const overlay = document.getElementById("overlay");
     const btnStart= document.getElementById("btnStart");
@@ -150,39 +161,25 @@
     const infoCard= document.getElementById("card");
     const nm      = document.getElementById("nm");
     const desc    = document.getElementById("desc");
+    const sizeRange = document.getElementById("sizeRange");
+    const sizeVal   = document.getElementById("sizeVal");
 
-    let current = null;
+    let current = null;          // wrapper rotatorio activo
     let spinning = false;
     let arSystem = null;
 
-    // --- Auto-fit: iguala tamaño y centra el modelo (opción "floor" apoya en y=0) ---
-    function autoFitModel(entity, {size=0.7, mode="floor"} = {}){
-      const THREE = AFRAME.THREE;
-      // 'mesh' es la escena del glTF ya cargada
-      const mesh = entity.getObject3D('mesh') || entity.object3D;
-      if(!mesh) return;
+    // Guardamos medidas originales por modelo para re-aplicar el fit cuando cambie el slider
+    const autoFitStore = new WeakMap(); // entity -> { maxDim, center, min }
 
-      // Asegura matrices actualizadas
-      mesh.updateMatrixWorld(true);
-
-      const box = new THREE.Box3().setFromObject(mesh);
-      const sizeVec = new THREE.Vector3();
-      box.getSize(sizeVec);
-      const center = new THREE.Vector3();
-      box.getCenter(center);
-
-      const maxDim = Math.max(sizeVec.x, sizeVec.y, sizeVec.z) || 1e-6;
-      const scale = size / maxDim;
-
-      // Escala uniforme
-      entity.object3D.scale.set(scale, scale, scale);
-
-      // Offset para centrar y (opcional) apoyar al piso
-      let offsetY = -center.y;
-      if (mode === "floor") offsetY = -box.min.y; // apoya la base en y=0
-
-      const offset = new THREE.Vector3(-center.x, offsetY, -center.z).multiplyScalar(scale);
-      entity.object3D.position.set(offset.x, offset.y, offset.z);
+    // === Helpers ===
+    function makePlaceholder(color){
+      const box = document.createElement("a-box");
+      box.setAttribute("depth",".35");
+      box.setAttribute("width",".7");
+      box.setAttribute("height",".7");
+      box.setAttribute("position","0 0 0");
+      box.setAttribute("color", color || "#7aa7ff");
+      return box;
     }
 
     function setSpin(active){
@@ -200,8 +197,32 @@
       const wrapper = document.createElement("a-entity");
       wrapper.classList.add("rot");
       wrapper.setAttribute("position","0 0 0");
-      wrapper.setAttribute("animation__spin","property: rotation; to: 0 360 0; loop: true; dur: 2500; easing: linear; autoplay: false");
+      wrapper.setAttribute("animation__spin","property: rotation; to: 0 360 0; loop: true; dur: 2200; easing: linear; autoplay: false");
       return wrapper;
+    }
+
+    function computeBoundsFromModel(model){ // THREE.Object3D
+      const THREE = AFRAME.THREE;
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3(); box.getSize(size);
+      const center = new THREE.Vector3(); box.getCenter(center);
+      return { maxDim: Math.max(size.x, size.y, size.z) || 1e-6, center, min: box.min.clone() };
+    }
+
+    function applyFit(entity, storeObj, {size=0.7, mode="center"} = {}){
+      // entity = <a-entity gltf-model=...> con su object3D/mesh ya montado
+      if (!storeObj || !storeObj.maxDim) return;
+      const scale = size / storeObj.maxDim;
+
+      // Escala uniforme
+      entity.object3D.scale.set(scale, scale, scale);
+
+      // Offset para centrar (o apoyar)
+      let offset = new AFRAME.THREE.Vector3(-storeObj.center.x, -storeObj.center.y, -storeObj.center.z);
+      if (mode === "floor") offset.y = -storeObj.min.y; // base a y=0
+      offset.multiplyScalar(scale);
+
+      entity.object3D.position.set(offset.x, offset.y, offset.z);
     }
 
     function buildAnchors(){
@@ -214,20 +235,27 @@
 
         if (USE_MODELS) {
           content = document.createElement("a-entity");
-          content.setAttribute("gltf-model", MODEL_IDS[code] || "");
-          // Ajuste al cargar el glTF
-          content.addEventListener("model-loaded", () => {
-            // esperamos un frame para que A-Frame monte todo
-            requestAnimationFrame(()=> autoFitModel(content, FIT));
-          });
+          const src = MODEL_IDS[code] || "";
+          if (!src){ // por si faltara el id
+            content = makePlaceholder(COLORS[code]);
+          } else {
+            content.setAttribute("gltf-model", src);
+            // Ajuste cuando el glTF está cargado
+            content.addEventListener("model-loaded", (e)=>{
+              const model = e.detail.model; // THREE.Group
+              const data  = computeBoundsFromModel(model);
+              autoFitStore.set(content, data);
+              applyFit(content, data, FIT);
+            });
+            content.addEventListener("model-error", ()=>{
+              // Fallback si falla el glTF
+              const ph = makePlaceholder(COLORS[code]);
+              rot.removeChild(content);
+              rot.appendChild(ph);
+            });
+          }
         } else {
-          // Placeholder (cubo)
-          content = document.createElement("a-box");
-          content.setAttribute("depth",".35");
-          content.setAttribute("width",".7");
-          content.setAttribute("height",".7");
-          content.setAttribute("position","0 0 0");
-          content.setAttribute("color", COLORS[code] || "#7aa7ff");
+          content = makePlaceholder(COLORS[code]);
         }
 
         rot.appendChild(content);
@@ -236,7 +264,7 @@
         anchor.addEventListener("targetFound", ()=>{
           overlay.style.display = "none";
           current = rot;
-          setSpin(true);            // empieza girando para que se note
+          setSpin(true);            // arranca girando
           btnSpin.disabled = false;
 
           const m = META[code] || {name: code, info:"—"};
@@ -255,9 +283,8 @@
       });
     }
 
-    // Espera a que la escena cargue
+    // Escena lista
     if (scene.hasLoaded) onSceneLoaded(); else scene.addEventListener("loaded", onSceneLoaded);
-
     function onSceneLoaded(){
       buildAnchors();
       arSystem = scene.systems && scene.systems["mindar-image-system"];
@@ -279,9 +306,20 @@
         alert("No se pudo iniciar la cámara.\n" + (e && e.message ? e.message : e));
       }
     });
-
     btnSpin.addEventListener("click", ()=> setSpin(!spinning));
 
+    // Slider tamaño en vivo
+    sizeRange.addEventListener("input", ()=>{
+      FIT.size = parseFloat(sizeRange.value);
+      sizeVal.textContent = FIT.size.toFixed(2);
+      // Re-aplica a todos los modelos ya cargados
+      document.querySelectorAll('[gltf-model]').forEach(ent=>{
+        const data = autoFitStore.get(ent);
+        if (data) applyFit(ent, data, FIT);
+      });
+    });
+
+    // HTTPS tip
     if (location.protocol !== "https:" && location.hostname !== "localhost"){
       console.warn("Para móvil, usa HTTPS o localhost.");
     }
