@@ -9,7 +9,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-  <!-- A-Frame + MindAR (A-Frame primero) -->
+  <!-- A-Frame + MindAR -->
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1/dist/mindar-image-aframe.prod.js"></script>
 
@@ -40,7 +40,7 @@
         embedded
         style="width:100%;height:100%;">
 
-        <!-- Preload de modelos (sube tus GLB a public/assets/models/flags/) -->
+        <!-- Preload de modelos -->
         <a-assets timeout="30000">
           <a-asset-item id="mdl-AR" src="./assets/models/flags/AR.glb"></a-asset-item>
           <a-asset-item id="mdl-AU" src="./assets/models/flags/AU.glb"></a-asset-item>
@@ -94,13 +94,17 @@
   </main>
 
   <script>
-    // --- Config ---
-    const USE_MODELS = true; // ⬅️ ponlo en true cuando ya subas tus GLB a /public/assets/models/flags/
-    const MODEL_IDS = { AR:"#mdl-AR", AU:"#mdl-AU", BR:"#mdl-BR", CA:"#mdl-CA", KR:"#mdl-KR",
-                        EC:"#mdl-EC", US:"#mdl-US", IR:"#mdl-IR", JP:"#mdl-JP", JO:"#mdl-JO",
-                        MX:"#mdl-MX", NZ:"#mdl-NZ", UZ:"#mdl-UZ" };
+    // ===== Config =====
+    const USE_MODELS = true;     // ⬅️ pon en true para usar tus GLB (o false para cubos)
+    const FIT = { size: 0.7, mode: "floor" }; // tamaño objetivo (unidades A-Frame), y=0 en el piso
 
-    // Mapeo 32 índices → 13 países (tus rangos)
+    const MODEL_IDS = {
+      AR:"#mdl-AR", AU:"#mdl-AU", BR:"#mdl-BR", CA:"#mdl-CA", KR:"#mdl-KR",
+      EC:"#mdl-EC", US:"#mdl-US", IR:"#mdl-IR", JP:"#mdl-JP", JO:"#mdl-JO",
+      MX:"#mdl-MX", NZ:"#mdl-NZ", UZ:"#mdl-UZ"
+    };
+
+    // 32 índices → 13 países (tus rangos)
     const INDEX_TO_CODE = [
       "AR","AR",
       "AU","AU","AU","AU",
@@ -117,7 +121,6 @@
       "UZ","UZ"
     ];
 
-    // Meta por país
     const META = {
       AR:{name:"Argentina", info:"Capital: Buenos Aires."},
       AU:{name:"Australia", info:"Capital: Canberra."},
@@ -134,8 +137,7 @@
       UZ:{name:"Uzbekistán", info:"Capital: Taskent."}
     };
 
-    // Colores de cubos (placeholder)
-    const COLORS = {
+    const COLORS = { // colores para cubos placeholder
       AR:"#53b3ff", AU:"#3ec4a7", BR:"#1cc94d", CA:"#ff4d57", KR:"#e1e1e1",
       EC:"#ffe24d", US:"#6c9dff", IR:"#3fd870", JP:"#ffffff", JO:"#ff7a7a",
       MX:"#22aa66", NZ:"#2c3ee8", UZ:"#1fc9c9"
@@ -149,9 +151,39 @@
     const nm      = document.getElementById("nm");
     const desc    = document.getElementById("desc");
 
-    let current = null;   // nodo rotatable actual (wrapper)
-    let spinning = false; // estado de animación
+    let current = null;
+    let spinning = false;
     let arSystem = null;
+
+    // --- Auto-fit: iguala tamaño y centra el modelo (opción "floor" apoya en y=0) ---
+    function autoFitModel(entity, {size=0.7, mode="floor"} = {}){
+      const THREE = AFRAME.THREE;
+      // 'mesh' es la escena del glTF ya cargada
+      const mesh = entity.getObject3D('mesh') || entity.object3D;
+      if(!mesh) return;
+
+      // Asegura matrices actualizadas
+      mesh.updateMatrixWorld(true);
+
+      const box = new THREE.Box3().setFromObject(mesh);
+      const sizeVec = new THREE.Vector3();
+      box.getSize(sizeVec);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+
+      const maxDim = Math.max(sizeVec.x, sizeVec.y, sizeVec.z) || 1e-6;
+      const scale = size / maxDim;
+
+      // Escala uniforme
+      entity.object3D.scale.set(scale, scale, scale);
+
+      // Offset para centrar y (opcional) apoyar al piso
+      let offsetY = -center.y;
+      if (mode === "floor") offsetY = -box.min.y; // apoya la base en y=0
+
+      const offset = new THREE.Vector3(-center.x, offsetY, -center.z).multiplyScalar(scale);
+      entity.object3D.position.set(offset.x, offset.y, offset.z);
+    }
 
     function setSpin(active){
       spinning = !!active;
@@ -164,15 +196,11 @@
         : '<i class="bi bi-arrow-repeat"></i> Activar rotación';
     }
 
-    function makeRotatingWrapper(){
-      // Entidad envolvente que rota (para que el pivote sea estable con cualquier GLB)
+    function makeRotWrapper(){
       const wrapper = document.createElement("a-entity");
       wrapper.classList.add("rot");
       wrapper.setAttribute("position","0 0 0");
-      wrapper.setAttribute(
-        "animation__spin",
-        "property: rotation; to: 0 360 0; loop: true; dur: 3000; easing: linear; autoplay: false"
-      );
+      wrapper.setAttribute("animation__spin","property: rotation; to: 0 360 0; loop: true; dur: 2500; easing: linear; autoplay: false");
       return wrapper;
     }
 
@@ -181,19 +209,19 @@
         const anchor = document.createElement("a-entity");
         anchor.setAttribute("mindar-image-target", `targetIndex: ${idx}`);
 
-        const rot = makeRotatingWrapper(); // rota el wrapper
+        const rot = makeRotWrapper();
         let content;
 
         if (USE_MODELS) {
-          // Modelo GLB por país
           content = document.createElement("a-entity");
           content.setAttribute("gltf-model", MODEL_IDS[code] || "");
-          content.setAttribute("scale", "0.42 0.42 0.42");
-          content.setAttribute("position", "0 0 0.0");
-          // Si tu GLB tiene animaciones internas, descomenta:
-          // content.setAttribute("animation-mixer", "");
+          // Ajuste al cargar el glTF
+          content.addEventListener("model-loaded", () => {
+            // esperamos un frame para que A-Frame monte todo
+            requestAnimationFrame(()=> autoFitModel(content, FIT));
+          });
         } else {
-          // Placeholder: cubo visible
+          // Placeholder (cubo)
           content = document.createElement("a-box");
           content.setAttribute("depth",".35");
           content.setAttribute("width",".7");
@@ -208,7 +236,7 @@
         anchor.addEventListener("targetFound", ()=>{
           overlay.style.display = "none";
           current = rot;
-          setSpin(true);           // ⬅️ empieza girando para que se note al toque
+          setSpin(true);            // empieza girando para que se note
           btnSpin.disabled = false;
 
           const m = META[code] || {name: code, info:"—"};
@@ -227,21 +255,21 @@
       });
     }
 
-    // Espera a que A-Frame cargue
+    // Espera a que la escena cargue
     if (scene.hasLoaded) onSceneLoaded(); else scene.addEventListener("loaded", onSceneLoaded);
 
     function onSceneLoaded(){
       buildAnchors();
       arSystem = scene.systems && scene.systems["mindar-image-system"];
-      console.log("MindAR listo:", !!arSystem);
       if (arSystem && typeof arSystem.start === "function") btnStart.disabled = false;
+      console.log("MindAR listo:", !!arSystem);
     }
 
     // Botones
     btnStart.addEventListener("click", async ()=>{
       try{
         if (!arSystem || typeof arSystem.start !== "function"){
-          alert("MindAR no cargó. Revisa el script y el atributo mindar-image.");
+          alert("MindAR no cargó. Verifica el script y el atributo mindar-image.");
           return;
         }
         await arSystem.start();
@@ -254,7 +282,6 @@
 
     btnSpin.addEventListener("click", ()=> setSpin(!spinning));
 
-    // Nota HTTPS
     if (location.protocol !== "https:" && location.hostname !== "localhost"){
       console.warn("Para móvil, usa HTTPS o localhost.");
     }
