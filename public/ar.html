@@ -125,22 +125,25 @@
       "UZ","UZ"
     ];
 
-    // Meta por país
-    const META = {
-      AR:{name:"Argentina", info:"Capital: Buenos Aires."},
-      AU:{name:"Australia", info:"Capital: Canberra."},
-      BR:{name:"Brasil", info:"Pentacampeón mundial."},
-      CA:{name:"Canadá", info:"Co-anfitrión 2026."},
-      KR:{name:"Corea del Sur", info:"Capital: Seúl."},
-      EC:{name:"Ecuador", info:"Debut en 2002."},
-      US:{name:"Estados Unidos", info:"Co-anfitrión 2026."},
-      IR:{name:"Irán", info:"Capital: Teherán."},
-      JP:{name:"Japón", info:"Capital: Tokio."},
-      JO:{name:"Jordania", info:"Capital: Amán."},
-      MX:{name:"México", info:"Co-anfitrión 2026."},
-      NZ:{name:"Nueva Zelanda", info:"Capital: Wellington."},
-      UZ:{name:"Uzbekistán", info:"Capital: Taskent."}
-    };
+    // Meta por país (CON ESCALAS y POSICIONES personalizadas)
+    const META = {
+      // --- Tamaño BUENO (0.42) ---
+      AR:{name:"Argentina", info:"Capital: Buenos Aires.",   scale: "0.42 0.42 0.42", pos:"0 0 0"},
+      BR:{name:"Brasil", info:"Pentacampeón mundial.",     scale: "0.42 0.42 0.42", pos:"0 0 0"},
+      
+      // --- Demasiado GRANDES (probamos con 0.3) ---
+      AU:{name:"Australia", info:"Capital: Canberra.",       scale: "0.3 0.3 0.3",     pos:"0 0 0"},
+      CA:{name:"Canadá", info:"Co-anfitrión 2026.",         scale: "0.3 0.3 0.3",     pos:"0 0 0"},
+      KR:{name:"Corea del Sur", info:"Capital: Seúl.",       scale: "0.3 0.3 0.3",     pos:"0 0 0"},
+      EC:{name:"Ecuador", info:"Debut en 2002.",            scale: "0.3 0.3 0.3",     pos:"0 0 0"},
+      US:{name:"Estados Unidos", info:"Co-anfitrión 2026.", scale: "0.3 0.3 0.3",     pos:"0 0 0"},
+      IR:{name:"Irán", info:"Capital: Teherán.",            scale: "0.3 0.3 0.3",     pos:"0 0 0"},
+      JP:{name:"Japón", info:"Capital: Tokio.",             scale: "0.3 0.3 0.3",     pos:"0 0 0"},
+      JO:{name:"Jordania", info:"Capital: Amán.",           scale: "0.3 0.3 0.3",     pos:"0 0 0"},
+      MX:{name:"México", info:"Co-anfitrión 2026.",         scale: "0.3 0.3 0.3",     pos:"0 0 0"},
+      NZ:{name:"Nueva Zelanda", info:"Capital: Wellington.", scale: "0.3 0.3 0.3",     pos:"0 0 0"},
+      UZ:{name:"Uzbekistán", info:"Capital: Taskent.",      scale: "0.3 0.3 0.3",     pos:"0 0 0"}
+    };
 
     // Colores de cubos (placeholder)
     const COLORS = {
@@ -162,75 +165,94 @@
     let arSystem = null;
 
     function setSpin(active){
-      spinning = !!active;
-      if (current){
-        const comp = current.components["animation__spin"];
-        if (comp){ spinning ? comp.play() : comp.pause(); }
-      }
-      btnSpin.innerHTML = spinning
-        ? '<i class="bi bi-pause-circle"></i> Pausar rotación'
-        : '<i class="bi bi-arrow-repeat"></i> Activar rotación';
-    }
+      spinning = !!active;
+      if (current){
+        // Nueva versión: Emitimos eventos (más seguro)
+        if (spinning) {
+          current.emit('start-spin');
+        } else {
+          current.emit('pause-spin');
+        }
+      }
+      btnSpin.innerHTML = spinning
+        ? '<i class="bi bi-pause-circle"></i> Pausar rotación'
+        : '<i class="bi bi-arrow-repeat"></i> Activar rotación';
+    }
 
-    function makeRotatingWrapper(){
-      const wrapper = document.createElement("a-entity");
-      wrapper.classList.add("rot");
-      wrapper.setAttribute("position","0 0 0");
-      wrapper.setAttribute(
-        "animation__spin",
-        "property: rotation; to: 0 360 0; loop: true; dur: 3000; easing: linear; autoplay: false"
-      );
-      return wrapper;
-    }
+   function makeRotatingWrapper(){
+      const wrapper = document.createElement("a-entity");
+      wrapper.classList.add("rot");
+      wrapper.setAttribute("position","0 0 0");
+      
+      // Unimos el string de la animación para que sea más legible
+      const animString = `
+        property: rotation; 
+        to: 0 360 0; 
+        loop: true; 
+        dur: 3000; 
+        easing: linear; 
+        autoplay: false;
+        startEvents: start-spin; 
+        pauseEvents: pause-spin
+      `;
+      
+      wrapper.setAttribute("animation__spin", animString.replace(/\s/g, '')); // Quitamos espacios/saltos
+      return wrapper;
+    }
 
     function buildAnchors(){
-      INDEX_TO_CODE.forEach((code, idx) => {
-        const anchor = document.createElement("a-entity");
-        anchor.setAttribute("mindar-image-target", `targetIndex: ${idx}`);
+      INDEX_TO_CODE.forEach((code, idx) => {
+        const anchor = document.createElement("a-entity");
+        anchor.setAttribute("mindar-image-target", `targetIndex: ${idx}`);
 
-        const rot = makeRotatingWrapper();
-        let content;
+        const rot = makeRotatingWrapper();
+        let content;
+        
+        // Obtenemos la metadata de escala y pos
+        const m = META[code] || {}; // m = Metadata
+        const modelScale = m.scale || "0.42 0.42 0.42"; // Default por si acaso
+        const modelPos = m.pos || "0 0 0";           // Default por si acaso
 
-        if (USE_MODELS) {
-          content = document.createElement("a-entity");
-          content.setAttribute("gltf-model", MODEL_IDS[code] || "");
-          content.setAttribute("scale", "0.42 0.42 0.42");
-          content.setAttribute("position", "0 0 0.0");
-          // content.setAttribute("animation-mixer", "");
-        } else {
-          content = document.createElement("a-box");
-          content.setAttribute("depth",".35");
-          content.setAttribute("width",".7");
-          content.setAttribute("height",".7");
-          content.setAttribute("position","0 0 0");
-          content.setAttribute("color", COLORS[code] || "#7aa7ff");
-        }
+        if (USE_MODELS) {
+          content = document.createElement("a-entity");
+          content.setAttribute("gltf-model", MODEL_IDS[code] || "");
+          // Usamos los valores personalizados de META
+          content.setAttribute("scale", modelScale);
+          content.setAttribute("position", modelPos);
+          // content.setAttribute("animation-mixer", "");
+        } else {
+          content = document.createElement("a-box");
+          content.setAttribute("depth",".35");
+          content.setAttribute("width",".7");
+          content.setAttribute("height",".7");
+        content.setAttribute("position","0 0 0");
+          content.setAttribute("color", COLORS[code] || "#7aa7ff");
+        }
 
-        rot.appendChild(content);
-        anchor.appendChild(rot);
+        rot.appendChild(content);
+        anchor.appendChild(rot);
 
-        anchor.addEventListener("targetFound", ()=>{
-          overlay.style.display = "none";
-          current = rot;
-          setSpin(false);
-          btnSpin.disabled = false;
+        anchor.addEventListener("targetFound", ()=>{
+          overlay.style.display = "none";
+          current = rot;
+          setSpin(false); // <--- IMPORTANTE: 'false' para que inicie pausado
+          btnSpin.disabled = false;
 
-          const m = META[code] || {name: code, info:"—"};
-          nm.textContent = m.name;
-          desc.textContent = m.info;
-          infoCard.classList.remove("d-none");
-        });
+          // Usamos la 'm' que ya teníamos
+          nm.textContent = m.name || code;
+          desc.textContent = m.info || "—";
+          infoCard.classList.remove("d-none");
+       });
 
-        anchor.addEventListener("targetLost", ()=>{
-          setSpin(false);
-          btnSpin.disabled = true;
-          current = null;
-        });
+        anchor.addEventListener("targetLost", ()=>{
+          setSpin(false);
+          btnSpin.disabled = true;
+          current = null;
+        });
 
-        scene.appendChild(anchor);
-      });
-    }
-
+        scene.appendChild(anchor);
+      });
+    }
     if (scene.hasLoaded) onSceneLoaded(); else scene.addEventListener("loaded", onSceneLoaded);
 
     function onSceneLoaded(){
