@@ -13,33 +13,25 @@
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1/dist/mindar-image-aframe.prod.js"></script>
 
- <style>
-  body{background:#0b0d12;}
-  #stage{position:relative;height:70vh}
-  .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-  .hud{position:fixed;left:0;right:0;bottom:.75rem;z-index:20;display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem}
+  <style>
+    body{background:#0b0d12;}
+    #stage{position:relative;height:70vh}
+    .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+    .hud{position:fixed;left:0;right:0;bottom:.75rem;z-index:20;display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem}
 
-  /* Altura aproximada de la navbar Bootstrap en móvil */
-  :root{ --navbar-h: 56px; }
+    :root{ --navbar-h: 56px; }
+    .info{
+      position:fixed;
+      right:.75rem;
+      top: calc(env(safe-area-inset-top, 0px) + var(--navbar-h) + 12px); /* un poco abajo de la navbar */
+      z-index:21;
+      max-width:300px;
+    }
+    @media (min-width: 576px){ :root{ --navbar-h: 60px; } }
 
-  /* Ficha de info: ahora un poco más abajo y respetando el notch/URL bar */
-  .info{
-    position:fixed;
-    right:.75rem;
-    top: calc(env(safe-area-inset-top, 0px) + var(--navbar-h) + .75rem);
-    z-index:21;
-    max-width:300px;
-  }
-
-  /* (opcional) si en tablet/desktop la navbar es un pelín más alta */
-  @media (min-width: 576px){
-    :root{ --navbar-h: 60px; }
-  }
-
-  .slider-card{position:fixed;left:.75rem;bottom:6.5rem;z-index:21;max-width:320px}
-  .form-range{width:240px}
-</style>
-
+    .slider-card{position:fixed;left:.75rem;bottom:6.5rem;z-index:21;max-width:320px}
+    .form-range{width:240px}
+  </style>
 </head>
 <body>
   <header class="navbar navbar-dark bg-black sticky-top shadow-sm">
@@ -94,7 +86,7 @@
       </div>
     </section>
 
-    <!-- Ficha arriba -->
+    <!-- Ficha (abajo un poco de la navbar) -->
     <div id="card" class="info card bg-dark text-light d-none">
       <div class="card-body p-3">
         <h6 id="nm" class="card-title mb-1">—</h6>
@@ -128,9 +120,8 @@
 
   <script>
     // ===== Config =====
-    const USE_MODELS = true;                  // ← ACTÍVALO PARA VER TUS GLB
+    const USE_MODELS = true;                  // ← ACTIVADO
     const FIT = { size: 0.8, mode: "center"}; // centrado sobre la imagen
-    const SCALE_MIN = 0.02, SCALE_MAX = 10;   // límites por si un GLB viene loco
 
     const MODEL_IDS = {
       AR:"#mdl-AR", AU:"#mdl-AU", BR:"#mdl-BR", CA:"#mdl-CA", KR:"#mdl-KR",
@@ -138,7 +129,7 @@
       MX:"#mdl-MX", NZ:"#mdl-NZ", UZ:"#mdl-UZ"
     };
 
-    // 32 índices → 13 países (tus rangos)
+    // 32 índices → 13 países
     const INDEX_TO_CODE = [
       "AR","AR","AU","AU","AU","AU","BR","BR","CA","CA","KR","KR",
       "EC","EC","US","US","IR","IR","JP","JP","JO","JO","MX","MX","MX",
@@ -180,13 +171,13 @@
     const btnRefit  = document.getElementById("btnRefit");
 
     let current = null;          // wrapper rotatorio activo
-    let spinning = true;         // arrancamos girando al detectar
+    let spinning = true;         // gira al detectar
     let arSystem = null;
 
-    // Guardamos medidas por modelo para re-aplicar el fit con el slider
+    // Guardar medidas por modelo para re-aplicar el fit con el slider
     const autoFitStore = new WeakMap(); // entity -> { maxDim, center, min }
 
-    // === Utilidades de ajuste ===
+    // === Helpers ===
     function makePlaceholder(color){
       const box = document.createElement("a-box");
       box.setAttribute("depth",".35");
@@ -216,34 +207,33 @@
       return wrapper;
     }
 
-    function computeBounds(model){ // THREE.Object3D
+    function computeBounds(obj3D){ // THREE.Object3D
       const THREE = AFRAME.THREE;
-      model.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(model);
+      obj3D.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(obj3D);
       const size = new THREE.Vector3(); box.getSize(size);
       const center = new THREE.Vector3(); box.getCenter(center);
       const maxDim = Math.max(size.x, size.y, size.z);
-      return { maxDim: isFinite(maxDim) && maxDim > 0 ? maxDim : 1, center, min: box.min.clone() };
+      return { maxDim: (isFinite(maxDim) && maxDim > 0) ? maxDim : 1, center, min: box.min.clone() };
     }
 
-    function clamp(v, min, max){ return Math.min(Math.max(v, min), max); }
-
+    // *** CLAVE: escala exacta, sin clamp ***
     function applyFit(entity, storeObj, {size=0.8, mode="center"} = {}){
       if (!storeObj || !storeObj.maxDim) return;
 
-      let scale = size / storeObj.maxDim;
-      scale = clamp(scale, SCALE_MIN, SCALE_MAX);
+      // escala para que la dimensión máxima final sea "size"
+      const scale = size / storeObj.maxDim;
       entity.object3D.scale.setScalar(scale);
 
-      // centrado (o al piso)
+      // centrar (o apoyar)
       const THREE = AFRAME.THREE;
-      const off = new THREE.Vector3(
+      const offset = new THREE.Vector3(
         -storeObj.center.x,
         mode === "floor" ? -storeObj.min.y : -storeObj.center.y,
         -storeObj.center.z
       ).multiplyScalar(scale);
 
-      entity.object3D.position.copy(off);
+      entity.object3D.position.copy(offset);
       entity.object3D.updateMatrixWorld();
     }
 
@@ -261,14 +251,13 @@
           if (!src){
             content = makePlaceholder(COLORS[code]);
           } else {
-            // IMPORTANTE: usa el selector del <a-asset-item> tal cual (#mdl-XX)
             content.setAttribute("gltf-model", src);
 
             content.addEventListener("model-loaded", ()=>{
-              // toma el mesh que A-Frame adjunta a la entidad
+              // Usa el mesh que A-Frame adjunta
               const mesh = content.getObject3D('mesh');
               if (!mesh) return;
-              // espera 1 frame para que el árbol esté listo
+              // 1 frame para jerarquía estable
               requestAnimationFrame(()=>{
                 const data = computeBounds(mesh);
                 autoFitStore.set(content, data);
@@ -317,7 +306,6 @@
       buildAnchors();
       arSystem = scene.systems && scene.systems["mindar-image-system"];
       if (arSystem && typeof arSystem.start === "function") btnStart.disabled = false;
-      console.log("MindAR listo:", !!arSystem);
     }
 
     // Botones
@@ -330,13 +318,12 @@
         await arSystem.start();
         overlay.style.display = "none";
       }catch(e){
-        console.error(e);
         alert("No se pudo iniciar la cámara.\n" + (e && e.message ? e.message : e));
       }
     });
     btnSpin.addEventListener("click", ()=> setSpin(!spinning));
 
-    // Slider tamaño en vivo + Recentrar
+    // Slider tamaño + Recentrar
     sizeRange.addEventListener("input", ()=>{
       FIT.size = parseFloat(sizeRange.value);
       sizeVal.textContent = FIT.size.toFixed(2);
@@ -352,7 +339,6 @@
       });
     });
 
-    // HTTPS tip
     if (location.protocol !== "https:" && location.hostname !== "localhost"){
       console.warn("Para móvil, usa HTTPS o localhost.");
     }
