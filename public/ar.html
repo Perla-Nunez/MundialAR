@@ -9,9 +9,10 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-  <!-- A-Frame + MindAR -->
+  <!-- A-Frame + MindAR (A-Frame primero) -->
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@0.11.1/dist/mindar-image-aframe.prod.js"></script>
+  <!-- Usa el paquete 'mind-ar' (con guion). Versión mayor 1 para mayor compatibilidad. -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
     body{background:#0b0d12;}
@@ -31,9 +32,9 @@
 
   <main class="container-fluid p-0">
     <section id="stage">
-      <!-- OJO: targets.mind está en la MISMA carpeta -->
-      <a-scene
-        mindar-image="imageTargetSrc: targets.mind; maxTrack: 1; filterMinCF:0.001; filterBeta:0.001"
+      <!-- OJO: 'targets.mind' está en la MISMA carpeta (public/) que este ar.html -->
+      <a-scene id="scene"
+        mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1; filterMinCF:0.001; filterBeta:0.001"
         color-space="sRGB"
         renderer="colorManagement: true, physicallyCorrectLights: true, antialias: true, preserveDrawingBuffer: true"
         vr-mode-ui="enabled:false"
@@ -45,7 +46,7 @@
         <a-entity light="type: ambient; intensity: 1"></a-entity>
         <a-entity light="type: directional; intensity: .8" position="1 1 0"></a-entity>
 
-        <!-- La cámara -->
+        <!-- Cámara -->
         <a-camera look-controls="enabled:false"></a-camera>
       </a-scene>
 
@@ -68,15 +69,19 @@
 
     <!-- Controles -->
     <div class="hud">
-      <button id="btnStart" class="btn btn-primary"><i class="bi bi-camera-video"></i> Activar cámara</button>
-      <button id="btnSpin" class="btn btn-outline-light" disabled><i class="bi bi-arrow-repeat"></i> Activar rotación</button>
+      <button id="btnStart" class="btn btn-primary" disabled>
+        <i class="bi bi-camera-video"></i> Activar cámara
+      </button>
+      <button id="btnSpin" class="btn btn-outline-light" disabled>
+        <i class="bi bi-arrow-repeat"></i> Activar rotación
+      </button>
     </div>
   </main>
 
   <script>
     // ================================
-    // 1) Mapeo 0-based de 32 índices
-    // (Tus rangos: 1-2 AR, 3-6 AU, 7-8 BR, 9-10 CA, 11-12 KR,
+    // Mapeo 0-based de 32 índices
+    // (1-2 AR, 3-6 AU, 7-8 BR, 9-10 CA, 11-12 KR,
     //  13-14 EC, 15-16 US, 17-18 IR, 19-20 JP, 21-22 JO,
     //  23-25 MX, 26-30 NZ, 31-32 UZ)
     // ================================
@@ -96,7 +101,7 @@
       "UZ","UZ"
     ];
 
-    // 2) Meta por país (texto básico)
+    // Meta por país (texto básico)
     const META = {
       AR:{name:"Argentina", info:"Capital: Buenos Aires."},
       AU:{name:"Australia", info:"Capital: Canberra."},
@@ -113,35 +118,36 @@
       UZ:{name:"Uzbekistán", info:"Capital: Taskent."}
     };
 
-    // 3) Colores por país (para diferenciar placeholders)
+    // Colores para diferenciar placeholders
     const COLORS = {
       AR:"#53b3ff", AU:"#3ec4a7", BR:"#1cc94d", CA:"#ff4d57", KR:"#e1e1e1",
       EC:"#ffe24d", US:"#6c9dff", IR:"#3fd870", JP:"#ffffff", JO:"#ff7a7a",
       MX:"#22aa66", NZ:"#2c3ee8", UZ:"#1fc9c9"
     };
 
-    const scene  = document.querySelector("a-scene");
+    const scene   = document.getElementById("scene");
     const overlay = document.getElementById("overlay");
-    const btnStart = document.getElementById("btnStart");
-    const btnSpin  = document.getElementById("btnSpin");
-    const infoCard = document.getElementById("card");
-    const nm = document.getElementById("nm");
-    const desc = document.getElementById("desc");
+    const btnStart= document.getElementById("btnStart");
+    const btnSpin = document.getElementById("btnSpin");
+    const infoCard= document.getElementById("card");
+    const nm      = document.getElementById("nm");
+    const desc    = document.getElementById("desc");
 
-    let current = null;   // nodo .rot actual
-    let spinning = false; // estado de animación
+    let current = null;      // nodo .rot actual
+    let spinning = false;    // estado de animación
+    let arSystem = null;     // se asigna cuando A-Frame termina de cargar
 
     function setSpin(active){
       spinning = !!active;
-      if (!current) return;
-      const comp = current.components["animation__spin"];
-      if (comp){ spinning ? comp.play() : comp.pause(); }
+      if (current){
+        const comp = current.components["animation__spin"];
+        if (comp){ spinning ? comp.play() : comp.pause(); }
+      }
       btnSpin.innerHTML = spinning
         ? '<i class="bi bi-pause-circle"></i> Pausar rotación'
         : '<i class="bi bi-arrow-repeat"></i> Activar rotación';
     }
 
-    // 4) Crear dinámicamente 32 anchors con un cubo placeholder que rota
     function buildAnchors(){
       INDEX_TO_CODE.forEach((code, idx) => {
         const anchor = document.createElement("a-entity");
@@ -158,11 +164,10 @@
 
         anchor.appendChild(box);
 
-        // Eventos por target
         anchor.addEventListener("targetFound", ()=>{
           overlay.style.display = "none";
           current = box;
-          setSpin(false);              // empieza pausado
+          setSpin(false);
           btnSpin.disabled = false;
 
           const m = META[code] || {name: code, info:"—"};
@@ -170,6 +175,7 @@
           desc.textContent = m.info;
           infoCard.classList.remove("d-none");
         });
+
         anchor.addEventListener("targetLost", ()=>{
           setSpin(false);
           btnSpin.disabled = true;
@@ -180,18 +186,44 @@
       });
     }
 
-    buildAnchors();
+    // Espera a que A-Frame termine de cargar la escena y los sistemas
+    if (scene.hasLoaded) {
+      onSceneLoaded();
+    } else {
+      scene.addEventListener("loaded", onSceneLoaded);
+    }
 
-    // 5) Botones
+    function onSceneLoaded(){
+      // Construye anchors una vez que la escena está lista
+      buildAnchors();
+
+      // Obtén el sistema MindAR de forma segura
+      arSystem = scene.systems && scene.systems["mindar-image-system"];
+      console.log("MindAR listo:", !!arSystem);
+
+      // Habilita el botón de cámara solo si el sistema está listo
+      if (arSystem && typeof arSystem.start === "function") {
+        btnStart.disabled = false;
+      } else {
+        console.warn("MindAR no inicializó. Revisa el <script> de mind-ar o el atributo mindar-image en <a-scene>.");
+      }
+    }
+
+    // Botones
     btnStart.addEventListener("click", async ()=>{
       try{
-        const sys = scene.systems["mindar-image-system"];
-        await sys.start();
+        if (!arSystem || typeof arSystem.start !== "function"){
+          alert("MindAR no cargó. Verifica el script y que <a-scene> tenga mindar-image.");
+          return;
+        }
+        await arSystem.start();
         overlay.style.display = "none";
       }catch(e){
-        alert("No se pudo iniciar la cámara. Usa HTTPS o localhost.\n" + e);
+        console.error(e);
+        alert("No se pudo iniciar la cámara.\n" + (e && e.message ? e.message : e));
       }
     });
+
     btnSpin.addEventListener("click", ()=> setSpin(!spinning));
 
     // Recomendación móvil: HTTPS o localhost
