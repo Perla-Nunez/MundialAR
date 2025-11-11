@@ -108,10 +108,10 @@
 
   <script>
     // ===== Config =====
-    const USE_MODELS = true;                      // usa GLB
-    const FIT = { size: 0.8, mode: "center"};     // centrados sobre el target
-    const SAFE_OFFSET = 2.0;                      // clamp de offsets (unidades AR)
-    const SCALE_MIN = 0.02, SCALE_MAX = 10;       // límites por si vienen raros
+    const USE_MODELS = true;                      // usar GLB
+    const FIT = { size: 0.8, mode: "center"};     // centrado sobre la imagen
+    const SAFE_OFFSET = 2.0;                      // clamp de offsets para no "perder" el modelo
+    const SCALE_MIN = 0.02, SCALE_MAX = 10;       // límites anti-locura
 
     const MODEL_IDS = {
       AR:"#mdl-AR", AU:"#mdl-AU", BR:"#mdl-BR", CA:"#mdl-CA", KR:"#mdl-KR",
@@ -199,7 +199,6 @@
 
     function computeBounds(model){ // THREE.Object3D
       const THREE = AFRAME.THREE;
-      // Asegurar world matrices
       model.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(model);
       const size = new THREE.Vector3(); box.getSize(size);
@@ -212,21 +211,23 @@
 
     function applyFit(entity, storeObj, {size=0.8, mode="center"} = {}){
       if (!storeObj || !storeObj.maxDim) return;
+
+      // --- ESCALA UNIFORME SEGURA ---
       let scale = size / storeObj.maxDim;
       scale = clamp(scale, SCALE_MIN, SCALE_MAX);
-
       entity.object3D.scale.setScalar(scale);
 
-      // centrado (o al piso) con límites de seguridad
+      // --- OFFSET CENTRADO / PISO (CLAMP PARA NO "SALIRSE") ---
       const THREE = AFRAME.THREE;
-      let offX = -storeObj.center.x, offY = -storeObj.center.y, offZ = -storeObj.center.z;
-      if (mode === "floor") offY = -storeObj.min.y;
+      let off = new THREE.Vector3(-storeObj.center.x, -storeObj.center.y, -storeObj.center.z);
+      if (mode === "floor") off.y = -storeObj.min.y;
 
-      offX = clamp(offX * scale, -SAFE_OFFSET, SAFE_OFFSET);
-      offY = clamp(offY * scale, -SAFE_OFFSET, SAFE_OFFSET);
-      offZ = clamp(offZ * scale, -SAFE_OFFSET, SAFE_OFFSET);
+      off.multiplyScalar(scale);
+      off.x = clamp(off.x, -SAFE_OFFSET, SAFE_OFFSET);
+      off.y = clamp(off.y, -SAFE_OFFSET, SAFE_OFFSET);
+      off.z = clamp(off.z, -SAFE_OFFSET, SAFE_OFFSET);
 
-      entity.object3D.position.set(offX, offY, offZ);
+      entity.object3D.position.set(off.x, off.y, off.z);
       entity.object3D.updateMatrixWorld();
     }
 
@@ -244,18 +245,27 @@
           if (!src){
             content = makePlaceholder(COLORS[code]);
           } else {
-            content.setAttribute("gltf-model", src);
+            // ⬇️ GLTF con decoders para DRACO / Meshopt / KTX2
+            content.setAttribute("gltf-model", {
+              src: src,
+              dracoDecoderPath: "https://www.gstatic.com/draco/v1/decoders/",
+              meshoptDecoderPath: "https://unpkg.com/meshoptimizer/meshopt_decoder.js",
+              ktx2TranscoderPath: "https://unpkg.com/ktx2decoders/bin/"
+            });
+
             content.addEventListener("model-loaded", (e)=>{
               const model = e.detail.model;
               if (!model) return;
-              // Espera 2 frames para jerarquías listas
+              // Recalcular después de 2 frames para jerarquía estable
               requestAnimationFrame(()=>requestAnimationFrame(()=>{
                 const data = computeBounds(model);
                 autoFitStore.set(content, data);
                 applyFit(content, data, FIT);
               }));
             });
-            content.addEventListener("model-error", ()=>{
+
+            content.addEventListener("model-error", (ev)=>{
+              console.error("Error GLB", code, ev.detail);
               const ph = makePlaceholder(COLORS[code]);
               rot.removeChild(content);
               rot.appendChild(ph);
