@@ -11,7 +11,6 @@
 
   <!-- A-Frame + MindAR (A-Frame primero) -->
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-  <!-- Usa el paquete 'mind-ar' (con guion). Versión mayor 1 para mayor compatibilidad. -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
@@ -32,7 +31,6 @@
 
   <main class="container-fluid p-0">
     <section id="stage">
-      <!-- OJO: 'targets.mind' está en la MISMA carpeta (public/) que este ar.html -->
       <a-scene id="scene"
         mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1; filterMinCF:0.001; filterBeta:0.001"
         color-space="sRGB"
@@ -42,9 +40,26 @@
         embedded
         style="width:100%;height:100%;">
 
+        <!-- Preload de modelos (sube tus GLB a public/assets/models/flags/) -->
+        <a-assets timeout="30000">
+          <a-asset-item id="mdl-AR" src="./assets/models/flags/AR.glb"></a-asset-item>
+          <a-asset-item id="mdl-AU" src="./assets/models/flags/AU.glb"></a-asset-item>
+          <a-asset-item id="mdl-BR" src="./assets/models/flags/BR.glb"></a-asset-item>
+          <a-asset-item id="mdl-CA" src="./assets/models/flags/CA.glb"></a-asset-item>
+          <a-asset-item id="mdl-KR" src="./assets/models/flags/KR.glb"></a-asset-item>
+          <a-asset-item id="mdl-EC" src="./assets/models/flags/EC.glb"></a-asset-item>
+          <a-asset-item id="mdl-US" src="./assets/models/flags/US.glb"></a-asset-item>
+          <a-asset-item id="mdl-IR" src="./assets/models/flags/IR.glb"></a-asset-item>
+          <a-asset-item id="mdl-JP" src="./assets/models/flags/JP.glb"></a-asset-item>
+          <a-asset-item id="mdl-JO" src="./assets/models/flags/JO.glb"></a-asset-item>
+          <a-asset-item id="mdl-MX" src="./assets/models/flags/MX.glb"></a-asset-item>
+          <a-asset-item id="mdl-NZ" src="./assets/models/flags/NZ.glb"></a-asset-item>
+          <a-asset-item id="mdl-UZ" src="./assets/models/flags/UZ.glb"></a-asset-item>
+        </a-assets>
+
         <!-- Luces -->
         <a-entity light="type: ambient; intensity: 1"></a-entity>
-        <a-entity light="type: directional; intensity: .8" position="1 1 0"></a-entity>
+        <a-entity light="type: directional; intensity: .9" position="1 1 0"></a-entity>
 
         <!-- Cámara -->
         <a-camera look-controls="enabled:false"></a-camera>
@@ -79,12 +94,13 @@
   </main>
 
   <script>
-    // ================================
-    // Mapeo 0-based de 32 índices
-    // (1-2 AR, 3-6 AU, 7-8 BR, 9-10 CA, 11-12 KR,
-    //  13-14 EC, 15-16 US, 17-18 IR, 19-20 JP, 21-22 JO,
-    //  23-25 MX, 26-30 NZ, 31-32 UZ)
-    // ================================
+    // --- Config ---
+    const USE_MODELS = false; // ⬅️ ponlo en true cuando ya subas tus GLB a /public/assets/models/flags/
+    const MODEL_IDS = { AR:"#mdl-AR", AU:"#mdl-AU", BR:"#mdl-BR", CA:"#mdl-CA", KR:"#mdl-KR",
+                        EC:"#mdl-EC", US:"#mdl-US", IR:"#mdl-IR", JP:"#mdl-JP", JO:"#mdl-JO",
+                        MX:"#mdl-MX", NZ:"#mdl-NZ", UZ:"#mdl-UZ" };
+
+    // Mapeo 32 índices → 13 países (tus rangos)
     const INDEX_TO_CODE = [
       "AR","AR",
       "AU","AU","AU","AU",
@@ -101,7 +117,7 @@
       "UZ","UZ"
     ];
 
-    // Meta por país (texto básico)
+    // Meta por país
     const META = {
       AR:{name:"Argentina", info:"Capital: Buenos Aires."},
       AU:{name:"Australia", info:"Capital: Canberra."},
@@ -118,7 +134,7 @@
       UZ:{name:"Uzbekistán", info:"Capital: Taskent."}
     };
 
-    // Colores para diferenciar placeholders
+    // Colores de cubos (placeholder)
     const COLORS = {
       AR:"#53b3ff", AU:"#3ec4a7", BR:"#1cc94d", CA:"#ff4d57", KR:"#e1e1e1",
       EC:"#ffe24d", US:"#6c9dff", IR:"#3fd870", JP:"#ffffff", JO:"#ff7a7a",
@@ -133,9 +149,9 @@
     const nm      = document.getElementById("nm");
     const desc    = document.getElementById("desc");
 
-    let current = null;      // nodo .rot actual
-    let spinning = false;    // estado de animación
-    let arSystem = null;     // se asigna cuando A-Frame termina de cargar
+    let current = null;   // nodo rotatable actual (wrapper)
+    let spinning = false; // estado de animación
+    let arSystem = null;
 
     function setSpin(active){
       spinning = !!active;
@@ -148,26 +164,51 @@
         : '<i class="bi bi-arrow-repeat"></i> Activar rotación';
     }
 
+    function makeRotatingWrapper(){
+      // Entidad envolvente que rota (para que el pivote sea estable con cualquier GLB)
+      const wrapper = document.createElement("a-entity");
+      wrapper.classList.add("rot");
+      wrapper.setAttribute("position","0 0 0");
+      wrapper.setAttribute(
+        "animation__spin",
+        "property: rotation; to: 0 360 0; loop: true; dur: 3000; easing: linear; autoplay: false"
+      );
+      return wrapper;
+    }
+
     function buildAnchors(){
       INDEX_TO_CODE.forEach((code, idx) => {
         const anchor = document.createElement("a-entity");
         anchor.setAttribute("mindar-image-target", `targetIndex: ${idx}`);
 
-        const box = document.createElement("a-box");
-        box.classList.add("rot");
-        box.setAttribute("depth",".3");
-        box.setAttribute("width",".6");
-        box.setAttribute("height",".6");
-        box.setAttribute("position","0 0 0");
-        box.setAttribute("color", COLORS[code] || "#7aa7ff");
-        box.setAttribute("animation__spin","property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear; autoplay: false");
+        const rot = makeRotatingWrapper(); // rota el wrapper
+        let content;
 
-        anchor.appendChild(box);
+        if (USE_MODELS) {
+          // Modelo GLB por país
+          content = document.createElement("a-entity");
+          content.setAttribute("gltf-model", MODEL_IDS[code] || "");
+          content.setAttribute("scale", "0.42 0.42 0.42");
+          content.setAttribute("position", "0 0 0.0");
+          // Si tu GLB tiene animaciones internas, descomenta:
+          // content.setAttribute("animation-mixer", "");
+        } else {
+          // Placeholder: cubo visible
+          content = document.createElement("a-box");
+          content.setAttribute("depth",".35");
+          content.setAttribute("width",".7");
+          content.setAttribute("height",".7");
+          content.setAttribute("position","0 0 0");
+          content.setAttribute("color", COLORS[code] || "#7aa7ff");
+        }
+
+        rot.appendChild(content);
+        anchor.appendChild(rot);
 
         anchor.addEventListener("targetFound", ()=>{
           overlay.style.display = "none";
-          current = box;
-          setSpin(false);
+          current = rot;
+          setSpin(true);           // ⬅️ empieza girando para que se note al toque
           btnSpin.disabled = false;
 
           const m = META[code] || {name: code, info:"—"};
@@ -186,34 +227,21 @@
       });
     }
 
-    // Espera a que A-Frame termine de cargar la escena y los sistemas
-    if (scene.hasLoaded) {
-      onSceneLoaded();
-    } else {
-      scene.addEventListener("loaded", onSceneLoaded);
-    }
+    // Espera a que A-Frame cargue
+    if (scene.hasLoaded) onSceneLoaded(); else scene.addEventListener("loaded", onSceneLoaded);
 
     function onSceneLoaded(){
-      // Construye anchors una vez que la escena está lista
       buildAnchors();
-
-      // Obtén el sistema MindAR de forma segura
       arSystem = scene.systems && scene.systems["mindar-image-system"];
       console.log("MindAR listo:", !!arSystem);
-
-      // Habilita el botón de cámara solo si el sistema está listo
-      if (arSystem && typeof arSystem.start === "function") {
-        btnStart.disabled = false;
-      } else {
-        console.warn("MindAR no inicializó. Revisa el <script> de mind-ar o el atributo mindar-image en <a-scene>.");
-      }
+      if (arSystem && typeof arSystem.start === "function") btnStart.disabled = false;
     }
 
     // Botones
     btnStart.addEventListener("click", async ()=>{
       try{
         if (!arSystem || typeof arSystem.start !== "function"){
-          alert("MindAR no cargó. Verifica el script y que <a-scene> tenga mindar-image.");
+          alert("MindAR no cargó. Revisa el script y el atributo mindar-image.");
           return;
         }
         await arSystem.start();
@@ -226,9 +254,9 @@
 
     btnSpin.addEventListener("click", ()=> setSpin(!spinning));
 
-    // Recomendación móvil: HTTPS o localhost
+    // Nota HTTPS
     if (location.protocol !== "https:" && location.hostname !== "localhost"){
-      console.warn("Para móvil, sirve la página por HTTPS (o prueba en localhost).");
+      console.warn("Para móvil, usa HTTPS o localhost.");
     }
   </script>
 </body>
