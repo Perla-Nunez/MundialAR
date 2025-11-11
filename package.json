@@ -1,0 +1,23 @@
+{
+  "name": "mundialar",
+  "version": "1.0.0",
+  "description": "Proyecto MundialAR desplegado en Railway",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Perla-Nunez/MundialAR.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Perla-Nunez/MundialAR/issues"
+  },
+  "homepage": "https://github.com/Perla-Nunez/MundialAR#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
